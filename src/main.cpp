@@ -47,6 +47,26 @@ int main(void)
     GLuint fs = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/color.frag");
     GLuint shader = CreateProgram(vs, fs);
 
+    float positions[] = {
+        0.5f, -0.5f, 0.0f,
+        0.0f, 0.5f, 0.0f,
+        -0.5f, -0.5f, 0.0
+    };
+
+    // vao = "Vertex Array Object", vbo = "Vertex Buffer Object"
+    GLuint vao, vbo;
+    glGenVertexArrays(1, &vao); // Allocate a vao handle
+    glBindVertexArray(vao);     // "activate" the desired vao
+    glGenBuffers(1, &vbo);      // Allocate a vbo handle
+    glBindBuffer(GL_ARRAY_BUFFER, vbo); // "activate" the desired vbo
+    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), positions, GL_STATIC_DRAW); // Allocate data
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+    glEnableVertexAttribArray(0);
+    //glBindVertexArray(GL_NONE);
+
+    glUseProgram(shader);
+    glPointSize(5.0f);
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
@@ -59,7 +79,9 @@ int main(void)
         //glfwSetCursorPos(window, x, y);
 
         // Uncomment to test debug output -- invalid to render without first uploading vertex data!
-        //glDrawArrays(GL_ARRAY_BUFFER, 0, 3);
+        //glDrawArrays(GL_POINTS, 0, 3);
+        //glDrawArrays(GL_LINE_LOOP, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
