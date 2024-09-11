@@ -1,7 +1,11 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
+#include <cassert>
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 constexpr int SCREEN_WIDTH = 1280;
 constexpr int SCREEN_HEIGHT = 720;
@@ -14,9 +18,12 @@ float Random(float min, float max)
 void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
+GLuint CreateShader(GLint type, const char* path);
+GLuint CreateProgram(GLuint vs, GLuint fs);
+
 int main(void)
 {
-    glfwInit();
+    assert(glfwInit() == GLFW_TRUE);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 #ifdef NDEBUG
@@ -27,7 +34,7 @@ int main(void)
 
     GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Graphics 1", NULL, NULL);
     glfwMakeContextCurrent(window);
-    gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+    assert(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress));
     glfwSetKeyCallback(window, key_callback);
 
 #ifdef NDEBUG
@@ -35,6 +42,10 @@ int main(void)
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(glDebugOutput, nullptr);
 #endif
+
+    GLuint vs = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/default.vert");
+    GLuint fs = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/color.frag");
+    GLuint shader = CreateProgram(vs, fs);
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
@@ -71,6 +82,82 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         glfwSetWindowShouldClose(window, GLFW_TRUE);
 
     // Homework: find a way to consume key inputs to make this an even better virus!
+}
+
+GLuint CreateShader(GLint type, const char* path)
+{
+    GLuint shader = GL_NONE;
+    try
+    {
+        // Load text file
+        std::ifstream file;
+        file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        file.open(path);
+
+        // Interpret the file as a giant string
+        std::stringstream stream;
+        stream << file.rdbuf();
+        file.close();
+
+        // Verify shader type matches shader file extension
+        const char* ext = strrchr(path, '.');
+        switch (type)
+        {
+        case GL_VERTEX_SHADER:
+            assert(strcmp(ext, ".vert") == 0);
+            break;
+
+        case GL_FRAGMENT_SHADER:
+            assert(strcmp(ext, ".frag") == 0);
+            break;
+        default:
+            assert(false, "Invalid shader type");
+            break;
+        }
+
+        // Compile text as a shader
+        std::string str = stream.str();
+        const char* src = str.c_str();
+        shader = glCreateShader(type);
+        glShaderSource(shader, 1, &src, NULL);
+        glCompileShader(shader);
+
+        // Check for compilation errors
+        GLint success;
+        GLchar infoLog[512];
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+        if (!success)
+        {
+            glGetShaderInfoLog(shader, 512, NULL, infoLog);
+            std::cout << "Shader failed to compile: \n" << infoLog << std::endl;
+        }
+    }
+    catch (std::ifstream::failure& e)
+    {
+        std::cout << "Shader (" << path << ") not found: " << e.what() << std::endl;
+    }
+
+    return shader;
+}
+
+GLuint CreateProgram(GLuint vs, GLuint fs)
+{
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vs);
+    glAttachShader(program, fs);
+    glLinkProgram(program);
+
+    // Check for linking errors
+    int success;
+    char infoLog[512];
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        program = GL_NONE;
+        glGetProgramInfoLog(program, 512, NULL, infoLog);
+        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+    }
+
+    return program;
 }
 
 void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam)
