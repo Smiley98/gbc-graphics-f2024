@@ -10,11 +10,6 @@
 constexpr int SCREEN_WIDTH = 1280;
 constexpr int SCREEN_HEIGHT = 720;
 
-float Random(float min, float max)
-{
-    return min + (rand() / ((float)RAND_MAX / (max - min)));
-}
-
 void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
@@ -23,6 +18,7 @@ GLuint CreateProgram(GLuint vs, GLuint fs);
 
 int main(void)
 {
+    // Lines 20-40 are all window creation. You can ignore this if you want ;)
     assert(glfwInit() == GLFW_TRUE);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -43,29 +39,47 @@ int main(void)
     glDebugMessageCallback(glDebugOutput, nullptr);
 #endif
 
+    // Create a vertex shader, a fragment shader, and a shader program (vs + fs)
     GLuint vs = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/default.vert");
     GLuint fs = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/color.frag");
     GLuint shader = CreateProgram(vs, fs);
 
+    // Positions of our triangle's (3D) vertices (CCW winding-order)
     float positions[] = {
-        0.5f, -0.5f, 0.0f,
-        0.0f, 0.5f, 0.0f,
-        -0.5f, -0.5f, 0.0
+        0.5f, -0.5f, 0.0f,  // vertex 1 (bottom-right)
+        0.0f, 0.5f, 0.0f,   // vertex 2 (top-middle)
+        -0.5f, -0.5f, 0.0   // vertex 3 (bottom-left)
     };
 
     // vao = "Vertex Array Object", vbo = "Vertex Buffer Object"
+    // A vao is a collection of vbos.
     GLuint vao, vbo;
     glGenVertexArrays(1, &vao); // Allocate a vao handle
-    glBindVertexArray(vao);     // "activate" the desired vao
+    glBindVertexArray(vao);     // Bind the vao - tells the GPU we want to work with this vao!
     glGenBuffers(1, &vbo);      // Allocate a vbo handle
-    glBindBuffer(GL_ARRAY_BUFFER, vbo); // "activate" the desired vbo
-    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), positions, GL_STATIC_DRAW); // Allocate data
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-    glEnableVertexAttribArray(0);
-    //glBindVertexArray(GL_NONE);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo); // Bind the vbo - tells the gpu which data we want in our vao.
 
+    // Uploads data to the bound vbo - 9 3d floating-points as positions!
+    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), positions, GL_STATIC_DRAW);
+
+    // Describes the data of the bound vbo - attribute 0, 3-component floating-point number
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+
+    // Enable the attribute we just bound (all attributes are disabled by default)!
+    glEnableVertexAttribArray(0);
+
+    // Bind our shader (shaders tell the GPU how to render our vertex data)
     glUseProgram(shader);
+
+    // Set the size of points if we're rendering points (GL_POINTS)
     glPointSize(5.0f);
+
+    // In summary, we need 3 things to render:
+    // 1. Vertex data -- right now just positions.
+    // 2. Shader -- vs forwards input, fs colours red.
+    // 3. Draw call -- draw 3 vertices interpreted as a triangle (GL_TRIANGLES)
+    // *** Everything is just data and behaviour ***
+    // *** vao & vbo describe data, shaders describe behaviour ***
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
@@ -74,14 +88,11 @@ int main(void)
         glClearColor(0.22f, 0.49f, 0.17f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        float x = Random(0.0f, SCREEN_WIDTH);
-        float y = Random(0.0f, SCREEN_HEIGHT);
-        //glfwSetCursorPos(window, x, y);
-
         // Uncomment to test debug output -- invalid to render without first uploading vertex data!
         //glDrawArrays(GL_POINTS, 0, 3);
         //glDrawArrays(GL_LINE_LOOP, 0, 3);
         glDrawArrays(GL_TRIANGLES, 0, 3);
+        // This is our draw call (unless you write this, your GPU won't render)!
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
@@ -157,6 +168,7 @@ GLuint CreateShader(GLint type, const char* path)
     catch (std::ifstream::failure& e)
     {
         std::cout << "Shader (" << path << ") not found: " << e.what() << std::endl;
+        assert(false);
     }
 
     return shader;
