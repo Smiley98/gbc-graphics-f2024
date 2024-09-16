@@ -1,11 +1,13 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include "Math.h"
 
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <array>
 
 constexpr int SCREEN_WIDTH = 1280;
 constexpr int SCREEN_HEIGHT = 720;
@@ -15,6 +17,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 GLuint CreateShader(GLint type, const char* path);
 GLuint CreateProgram(GLuint vs, GLuint fs);
+
+std::array<int, GLFW_KEY_LAST> gKeysCurr{}, gKeysPrev{};
+bool IsKeyDown(int key);
+bool IsKeyUp(int key);
+bool IsKeyPressed(int key);
 
 int main(void)
 {
@@ -81,12 +88,37 @@ int main(void)
     // *** Everything is just data and behaviour ***
     // *** vao & vbo describe data, shaders describe behaviour ***
 
+    int object = 0;
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
-        /* Render here */
         glClearColor(0.22f, 0.49f, 0.17f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        switch (object)
+        {
+        case 0:
+            break;
+
+        case 1:
+            break;
+
+        case 2:
+            break;
+
+        case 3:
+            break;
+
+        case 4:
+            break;
+        }
+
+        if (IsKeyPressed(GLFW_KEY_SPACE))
+        {
+            ++object %= 5;
+            printf("Rendering object %i\n", object);
+        }
 
         // Uncomment to test debug output -- invalid to render without first uploading vertex data!
         //glDrawArrays(GL_POINTS, 0, 3);
@@ -98,6 +130,7 @@ int main(void)
         glfwSwapBuffers(window);
 
         /* Poll for and process events */
+        memcpy(gKeysPrev.data(), gKeysCurr.data(), GLFW_KEY_LAST * sizeof(int));
         glfwPollEvents();
     }
 
@@ -107,14 +140,18 @@ int main(void)
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    const char* name = glfwGetKeyName(key, scancode);
-    if (action == GLFW_PRESS)
-        printf("%s\n", name);
+    // Disable repeat events so keys are either up or down
+    if (action == GLFW_REPEAT) return;
 
     if (key == GLFW_KEY_ESCAPE)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
 
-    // Homework: find a way to consume key inputs to make this an even better virus!
+    gKeysCurr[key] = action;
+
+    // Key logging
+    //const char* name = glfwGetKeyName(key, scancode);
+    //if (action == GLFW_PRESS)
+    //    printf("%s\n", name);
 }
 
 GLuint CreateShader(GLint type, const char* path)
@@ -233,4 +270,19 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum 
     case GL_DEBUG_SEVERITY_NOTIFICATION: std::cout << "Severity: notification"; break;
     } std::cout << std::endl;
     std::cout << std::endl;
+}
+
+bool IsKeyDown(int key)
+{
+    return gKeysCurr[key] == GLFW_PRESS;
+}
+
+bool IsKeyUp(int key)
+{
+    return gKeysCurr[key] == GLFW_RELEASE;
+}
+
+bool IsKeyPressed(int key)
+{
+    return gKeysPrev[key] == GLFW_PRESS && gKeysCurr[key] == GLFW_RELEASE;
 }
