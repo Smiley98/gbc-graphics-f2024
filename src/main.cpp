@@ -48,10 +48,10 @@ int main(void)
 
     // Create a vertex shader, a fragment shader, and a shader program (vs + fs)
     GLuint vs = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/default.vert");
-    GLuint fs = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/color.frag");
+    GLuint fsUniformColor = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/uniform_color.frag");
     GLuint vsVertexColor = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/vertex_color.vert");
     GLuint fsVertexColor = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/vertex_color.frag");
-    GLuint shader = CreateProgram(vs, fs);
+    GLuint shaderUniformColor = CreateProgram(vs, fsUniformColor);
     GLuint shaderVertexColor = CreateProgram(vsVertexColor, fsVertexColor);
 
     // Positions of our triangle's (3D) vertices (CCW winding-order)
@@ -78,62 +78,89 @@ int main(void)
     // Enable the attribute we just bound (all attributes are disabled by default)!
     glEnableVertexAttribArray(0);
 
-    // Bind our shader (shaders tell the GPU how to render our vertex data)
-    glUseProgram(shaderVertexColor);
-
-    // Set the size of points if we're rendering points (GL_POINTS)
-    glPointSize(5.0f);
-
     // In summary, we need 3 things to render:
     // 1. Vertex data -- right now just positions.
-    // 2. Shader -- vs forwards input, fs colours red.
+    // 2. Shader -- vs forwards input, fs colours.
     // 3. Draw call -- draw 3 vertices interpreted as a triangle (GL_TRIANGLES)
     // *** Everything is just data and behaviour ***
     // *** vao & vbo describe data, shaders describe behaviour ***
 
+    GLint u_world = glGetUniformLocation(shaderUniformColor, "u_world");
+    GLint u_color = glGetUniformLocation(shaderUniformColor, "u_color");
+    GLint u_intensity = glGetUniformLocation(shaderUniformColor, "u_intensity");
+
     int object = 0;
+    printf("Object %i\n", object + 1);
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
-        glClearColor(0.22f, 0.49f, 0.17f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        switch (object)
+        float time = glfwGetTime();
+        Matrix world = MatrixIdentity();
+
+        switch (object + 1)
         {
-        case 0:
+        // Hint: Change the colour to white
+        case 1:
+            glUseProgram(shaderUniformColor);
+            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
+            glUniform3f(u_color, 1.0f, 0.0f, 0.0f);
+            glUniform1f(u_intensity, 1.0f);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
-        case 1:
-            break;
-
+        // Hint: Switch the shader to colour based on vertex positions
+        // If you get errors in the console, comment out all unused uniforms
         case 2:
+            glUseProgram(shaderUniformColor);
+            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
+            glUniform3f(u_color, 0.0f, 1.0f, 0.0f);
+            glUniform1f(u_intensity, 1.0f);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
+        // Hint: Make intensity change from 0 to 1 using a periodic function (sin or cos)
         case 3:
+            glUseProgram(shaderUniformColor);
+            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
+            glUniform3f(u_color, 0.0f, 0.0f, 1.0f);
+            glUniform1f(u_intensity, 1.0f);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
+        // Hint: Use the Translate function
         case 4:
+            glUseProgram(shaderUniformColor);
+            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
+            glUniform3f(u_color, 1.0f, 0.0f, 1.0f);
+            glUniform1f(u_intensity, 1.0f);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+            break;
+
+        // Hint: Use the RotateZ function
+        case 5:
+            glUseProgram(shaderUniformColor);
+            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
+            glUniform3f(u_color, 0.0f, 1.0f, 1.0f);
+            glUniform1f(u_intensity, 1.0f);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
         }
 
+        // Change object when space is pressed
         if (IsKeyPressed(GLFW_KEY_SPACE))
         {
             ++object %= 5;
-            printf("Rendering object %i\n", object);
+            printf("Object %i\n", object + 1);
         }
-
-        // Uncomment to test debug output -- invalid to render without first uploading vertex data!
-        //glDrawArrays(GL_POINTS, 0, 3);
-        //glDrawArrays(GL_LINE_LOOP, 0, 3);
-        
-        // This is our draw call (unless you write this, your GPU won't render)!
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
 
-        /* Poll for and process events */
+        /* Poll and process events */
         memcpy(gKeysPrev.data(), gKeysCurr.data(), GLFW_KEY_LAST * sizeof(int));
         glfwPollEvents();
     }
@@ -158,6 +185,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     //    printf("%s\n", name);
 }
 
+// Compile a shader
 GLuint CreateShader(GLint type, const char* path)
 {
     GLuint shader = GL_NONE;
@@ -215,6 +243,7 @@ GLuint CreateShader(GLint type, const char* path)
     return shader;
 }
 
+// Combine two compiled shaders into a program that can run on the GPU
 GLuint CreateProgram(GLuint vs, GLuint fs)
 {
     GLuint program = glCreateProgram();
@@ -235,6 +264,7 @@ GLuint CreateProgram(GLuint vs, GLuint fs)
     return program;
 }
 
+// Graphics debug callback
 void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam)
 {
     // ignore non-significant error/warning codes
