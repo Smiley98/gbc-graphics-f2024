@@ -55,7 +55,8 @@ int main(void)
     GLuint shaderVertexColor = CreateProgram(vsVertexColor, fsVertexColor);
 
     // Positions of our triangle's (3D) vertices (CCW winding-order)
-    float positions[] = {
+    Vector3 positions[] =
+    {
         0.5f, -0.5f, 0.0f,  // vertex 1 (bottom-right)
         0.0f, 0.5f, 0.0f,   // vertex 2 (top-middle)
         -0.5f, -0.5f, 0.0   // vertex 3 (bottom-left)
@@ -70,7 +71,7 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, vbo); // Bind the vbo - tells the gpu which data we want in our vao.
 
     // Uploads data to the bound vbo - 9 3d floating-points as positions!
-    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), positions, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), positions, GL_STATIC_DRAW);
 
     // Describes the data of the bound vbo - attribute 0, 3-component floating-point number
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
