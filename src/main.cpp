@@ -86,6 +86,9 @@ int main(void)
     // *** Everything is just data and behaviour ***
     // *** vao & vbo describe data, shaders describe behaviour ***
 
+    // Fetch handles to uniform ("constant") variables.
+    // OpenGL handles are like addresses (&) in c++ -- they tell us the location of our data on the GPU.
+    // In the case of uniforms, we need to know their handle (location) before we can use them!
     GLint u_world = glGetUniformLocation(shaderUniformColor, "u_world");
     GLint u_color = glGetUniformLocation(shaderUniformColor, "u_color");
     GLint u_intensity = glGetUniformLocation(shaderUniformColor, "u_intensity");
@@ -101,11 +104,18 @@ int main(void)
 
         float time = glfwGetTime();
         Matrix world = MatrixIdentity();
+        float st = sinf(time);
+        float ct = cosf(time);
 
         switch (object + 1)
         {
-        // Hint: Change the colour to white
+        // Hint: Change the colour to white 
         case 1:
+            // We can modify the world matrix that transforms our vertices the same way we modify colours.
+            // This is because they are "uniform" variables meaning they're constant across our shader program!
+            world = Scale(ct, st, 0.0f) *
+                RotateZ(100.0f * time * DEG2RAD) *
+                Translate(0.0f, sinf(time), 0.0f);
             glUseProgram(shaderUniformColor);
             glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
             glUniform3f(u_color, 1.0f, 0.0f, 0.0f);
