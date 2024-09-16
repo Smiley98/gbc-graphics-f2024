@@ -49,7 +49,10 @@ int main(void)
     // Create a vertex shader, a fragment shader, and a shader program (vs + fs)
     GLuint vs = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/default.vert");
     GLuint fs = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/color.frag");
+    GLuint vsVertexColor = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/vertex_color.vert");
+    GLuint fsVertexColor = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/vertex_color.frag");
     GLuint shader = CreateProgram(vs, fs);
+    GLuint shaderVertexColor = CreateProgram(vsVertexColor, fsVertexColor);
 
     // Positions of our triangle's (3D) vertices (CCW winding-order)
     float positions[] = {
@@ -76,7 +79,7 @@ int main(void)
     glEnableVertexAttribArray(0);
 
     // Bind our shader (shaders tell the GPU how to render our vertex data)
-    glUseProgram(shader);
+    glUseProgram(shaderVertexColor);
 
     // Set the size of points if we're rendering points (GL_POINTS)
     glPointSize(5.0f);
@@ -99,6 +102,7 @@ int main(void)
         switch (object)
         {
         case 0:
+            glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
         case 1:
@@ -123,7 +127,7 @@ int main(void)
         // Uncomment to test debug output -- invalid to render without first uploading vertex data!
         //glDrawArrays(GL_POINTS, 0, 3);
         //glDrawArrays(GL_LINE_LOOP, 0, 3);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        
         // This is our draw call (unless you write this, your GPU won't render)!
 
         /* Swap front and back buffers */
