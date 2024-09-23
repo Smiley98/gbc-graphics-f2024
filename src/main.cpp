@@ -23,8 +23,24 @@ bool IsKeyDown(int key);
 bool IsKeyUp(int key);
 bool IsKeyPressed(int key);
 
+void Print(Matrix m);
+
 int main(void)
 {
+    Vector4 v = { 0.0f, 0.0f, 0.0f, 1.0f };
+    Matrix s = Scale(5.0f, 5.0f, 5.0f);
+    Matrix r = RotateZ(45.0f * DEG2RAD);
+    Matrix t = Translate(7.0f, 0.0f, 0.0f);
+    Matrix srt = s * r * t;
+    Matrix trs = t * r * s;
+
+    Print(srt);
+    Print(trs);
+
+    // Add 1 to v's x-value to see a more pronounced change
+    Vector3 v0 = srt * v;
+    Vector3 v1 = trs * v;
+
     // Lines 20-40 are all window creation. You can ignore this if you want ;)
     assert(glfwInit() == GLFW_TRUE);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -330,4 +346,12 @@ bool IsKeyUp(int key)
 bool IsKeyPressed(int key)
 {
     return gKeysPrev[key] == GLFW_PRESS && gKeysCurr[key] == GLFW_RELEASE;
+}
+
+void Print(Matrix m)
+{
+    printf("%f %f %f %f\n", m.m0, m.m4, m.m8, m.m12);
+    printf("%f %f %f %f\n", m.m1, m.m5, m.m9, m.m13);
+    printf("%f %f %f %f\n", m.m2, m.m6, m.m10, m.m14);
+    printf("%f %f %f %f\n\n", m.m3, m.m7, m.m11, m.m15);
 }
