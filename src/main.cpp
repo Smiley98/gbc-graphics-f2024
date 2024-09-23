@@ -27,19 +27,19 @@ void Print(Matrix m);
 
 int main(void)
 {
-    Vector4 v = { 0.0f, 0.0f, 0.0f, 1.0f };
-    Matrix s = Scale(5.0f, 5.0f, 5.0f);
-    Matrix r = RotateZ(45.0f * DEG2RAD);
-    Matrix t = Translate(7.0f, 0.0f, 0.0f);
-    Matrix srt = s * r * t;
-    Matrix trs = t * r * s;
-
-    Print(srt);
-    Print(trs);
-
-    // Add 1 to v's x-value to see a more pronounced change
-    Vector3 v0 = srt * v;
-    Vector3 v1 = trs * v;
+    //Vector4 v = { 0.0f, 0.0f, 0.0f, 1.0f };
+    //Matrix s = Scale(5.0f, 5.0f, 5.0f);
+    //Matrix r = RotateZ(45.0f * DEG2RAD);
+    //Matrix t = Translate(7.0f, 0.0f, 0.0f);
+    //Matrix srt = s * r * t;
+    //Matrix trs = t * r * s;
+    //
+    //Print(srt);
+    //Print(trs);
+    //
+    //// Add 1 to v's x-value to see a more pronounced change
+    //Vector3 v0 = srt * v;
+    //Vector3 v1 = trs * v;
 
     // Lines 20-40 are all window creation. You can ignore this if you want ;)
     assert(glfwInit() == GLFW_TRUE);
@@ -123,15 +123,20 @@ int main(void)
         float st = sinf(time);
         float ct = cosf(time);
 
+        Matrix t = Translate(0.75f, 0.5f, 0.0f);
+        Matrix r = RotateZ(time * 100.0f * DEG2RAD);
+        Matrix s = Scale(0.5f, 0.5f, 0.5f);
+        Matrix srt = s * r * t;
+        Matrix trs = t * r * s;
+
         switch (object + 1)
         {
-        // Hint: Change the colour to white 
         case 1:
-            // We can modify the world matrix that transforms our vertices the same way we modify colours.
-            // This is because they are "uniform" variables meaning they're constant across our shader program!
-            world = Scale(ct, st, 0.0f) *
+            world =
+                Scale(ct, st, 0.0f) *
                 RotateZ(100.0f * time * DEG2RAD) *
                 Translate(0.0f, sinf(time), 0.0f);
+
             glUseProgram(shaderUniformColor);
             glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
             glUniform3f(u_color, 1.0f, 0.0f, 0.0f);
@@ -139,8 +144,6 @@ int main(void)
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
-        // Hint: Switch the shader to colour based on vertex positions
-        // If you get errors in the console, comment out all unused uniforms
         case 2:
             glUseProgram(shaderUniformColor);
             glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
@@ -149,7 +152,6 @@ int main(void)
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
-        // Hint: Make intensity change from 0 to 1 using a periodic function (sin or cos)
         case 3:
             glUseProgram(shaderUniformColor);
             glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
@@ -158,8 +160,9 @@ int main(void)
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
-        // Hint: Use the Translate function
+        // "Correct" order such that we scale then rotate then translate
         case 4:
+            world = srt;
             glUseProgram(shaderUniformColor);
             glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
             glUniform3f(u_color, 1.0f, 0.0f, 1.0f);
@@ -167,8 +170,9 @@ int main(void)
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
-        // Hint: Use the RotateZ function
+        // "Incorrect" order such that we translate then rotate then scale
         case 5:
+            world = trs;
             glUseProgram(shaderUniformColor);
             glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
             glUniform3f(u_color, 0.0f, 1.0f, 1.0f);
