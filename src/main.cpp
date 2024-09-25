@@ -27,20 +27,6 @@ void Print(Matrix m);
 
 int main(void)
 {
-    //Vector4 v = { 0.0f, 0.0f, 0.0f, 1.0f };
-    //Matrix s = Scale(5.0f, 5.0f, 5.0f);
-    //Matrix r = RotateZ(45.0f * DEG2RAD);
-    //Matrix t = Translate(7.0f, 0.0f, 0.0f);
-    //Matrix srt = s * r * t;
-    //Matrix trs = t * r * s;
-    //
-    //Print(srt);
-    //Print(trs);
-    //
-    //// Add 1 to v's x-value to see a more pronounced change
-    //Vector3 v0 = srt * v;
-    //Vector3 v1 = trs * v;
-
     // Lines 20-40 are all window creation. You can ignore this if you want ;)
     assert(glfwInit() == GLFW_TRUE);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -62,38 +48,56 @@ int main(void)
     glDebugMessageCallback(glDebugOutput, nullptr);
 #endif
 
-    // Create a vertex shader, a fragment shader, and a shader program (vs + fs)
+    // Vertex shaders:
     GLuint vs = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/default.vert");
+    GLuint vsVertexPositionColor = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/vertex_color.vert");
+    GLuint vsColorBufferColor = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/buffer_color.vert");
+    
+    // Fragment shaders:
     GLuint fsUniformColor = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/uniform_color.frag");
-    GLuint vsVertexColor = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/vertex_color.vert");
     GLuint fsVertexColor = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/vertex_color.frag");
+    
+    // Shader programs:
     GLuint shaderUniformColor = CreateProgram(vs, fsUniformColor);
-    GLuint shaderVertexColor = CreateProgram(vsVertexColor, fsVertexColor);
+    GLuint shaderVertexPositionColor = CreateProgram(vsVertexPositionColor, fsVertexColor);
+    GLuint shaderVertexBufferColor = CreateProgram(vsColorBufferColor, fsVertexColor);
 
-    // Positions of our triangle's (3D) vertices (CCW winding-order)
+    // Positions of our triangle's vertices (CCW winding-order)
     Vector3 positions[] =
     {
         0.5f, -0.5f, 0.0f,  // vertex 1 (bottom-right)
         0.0f, 0.5f, 0.0f,   // vertex 2 (top-middle)
-        -0.5f, -0.5f, 0.0   // vertex 3 (bottom-left)
+        -0.5f, -0.5f, 0.0f  // vertex 3 (bottom-left)
     };
 
-    // vao = "Vertex Array Object", vbo = "Vertex Buffer Object"
-    // A vao is a collection of vbos.
-    GLuint vao, vbo;
+    // Colours of our triangle's vertices (xyz = rgb)
+    Vector3 colours[] =
+    {
+        1.0f, 0.0f, 0.0f,   // vertex 1
+        0.0f, 1.0f, 0.0f,   // vertex 2
+        0.0f, 0.0f, 1.0f    // vertex 3
+    };
+
+    // vao = "Vertex Array Object". A vao is a collection of vbos.
+    // vbo = "Vertex Buffer Object". "Buffer" generally means "group of memory".
+    // A vbo is a piece of graphics memory VRAM.
+    GLuint vao, pbo, cbo;   // pbo = "position buffer object", "cbo = color buffer object"
     glGenVertexArrays(1, &vao); // Allocate a vao handle
-    glBindVertexArray(vao);     // Bind the vao - tells the GPU we want to work with this vao!
-    glGenBuffers(1, &vbo);      // Allocate a vbo handle
-    glBindBuffer(GL_ARRAY_BUFFER, vbo); // Bind the vbo - tells the gpu which data we want in our vao.
-
-    // Uploads data to the bound vbo - 9 3d floating-points as positions!
-    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), positions, GL_STATIC_DRAW);
-
-    // Describes the data of the bound vbo - attribute 0, 3-component floating-point number
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-
-    // Enable the attribute we just bound (all attributes are disabled by default)!
+    glBindVertexArray(vao);     // Bind = "associate all bound buffer object with the current array object"
+    
+    // Create position buffer:
+    glGenBuffers(1, &pbo);              // Allocate a vbo handle
+    glBindBuffer(GL_ARRAY_BUFFER, pbo); // Associate this buffer with the bound vertex array
+    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), positions, GL_STATIC_DRAW);  // Upload the buffer
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);          // Describe the buffer
     glEnableVertexAttribArray(0);
+
+    // Create color buffer:
+    glGenBuffers(1, &cbo);              // Allocate a vbo handle
+    glBindBuffer(GL_ARRAY_BUFFER, cbo); // Associate this buffer with the bound vertex array
+    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), colours, GL_STATIC_DRAW);    // Upload the buffer
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);          // Describe the buffer
+    glEnableVertexAttribArray(1);
 
     // In summary, we need 3 things to render:
     // 1. Vertex data -- right now just positions.
@@ -112,6 +116,10 @@ int main(void)
     int object = 0;
     printf("Object %i\n", object + 1);
 
+    Matrix view = LookAt({ 0.0f, 0.0f, 5.0f }, V3_ZERO, V3_UP);
+    Matrix proj = Ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 10.0f);
+    // Optional homework: use the Perspective function to see how the projection changes!
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
@@ -119,37 +127,36 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT);
 
         float time = glfwGetTime();
-        Matrix world = MatrixIdentity();
-        float st = sinf(time);
-        float ct = cosf(time);
+        Matrix s = MatrixIdentity();//Scale(0.5f, 0.5f, 0.5f);
+        Matrix r = MatrixIdentity();//RotateZ(time * 100.0f * DEG2RAD);
+        Matrix t = MatrixIdentity();//Translate(0.75f, 0.5f, 0.0f);
 
-        Matrix t = Translate(0.75f, 0.5f, 0.0f);
-        Matrix r = RotateZ(time * 100.0f * DEG2RAD);
-        Matrix s = Scale(0.5f, 0.5f, 0.5f);
-        Matrix srt = s * r * t;
-        Matrix trs = t * r * s;
+        // Interpolation parameter (0 means fully A, 1 means fully B)
+        float a = cosf(time) * 0.5f + 0.5f;
+        Vector3 A = { -1.0f, 0.0f, 0.0f };
+        Vector3 B = {  1.0f, 0.0f, 0.0f };
+        Vector3 C = Lerp(A, B, a);
+        t = Translate(C);
+
+        Matrix world = s * r * t;
+        Matrix mvp = world * view * proj;
 
         switch (object + 1)
         {
         case 1:
-            world =
-                Scale(ct, st, 0.0f) *
-                RotateZ(100.0f * time * DEG2RAD) *
-                Translate(0.0f, sinf(time), 0.0f);
-
             glUseProgram(shaderUniformColor);
-            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
+            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(mvp).v);
             glUniform3f(u_color, 1.0f, 0.0f, 0.0f);
             glUniform1f(u_intensity, 1.0f);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
         case 2:
-            glUseProgram(shaderUniformColor);
-            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
-            glUniform3f(u_color, 0.0f, 1.0f, 0.0f);
-            glUniform1f(u_intensity, 1.0f);
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+            glUseProgram(shaderVertexBufferColor);
+            //glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
+            //glUniform3f(u_color, 0.0f, 1.0f, 0.0f);
+            //glUniform1f(u_intensity, 1.0f);
+            glDrawArrays(GL_LINE_LOOP, 0, 3);
             break;
 
         case 3:
@@ -160,9 +167,7 @@ int main(void)
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
-        // "Correct" order such that we scale then rotate then translate
         case 4:
-            world = srt;
             glUseProgram(shaderUniformColor);
             glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
             glUniform3f(u_color, 1.0f, 0.0f, 1.0f);
@@ -170,9 +175,7 @@ int main(void)
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
-        // "Incorrect" order such that we translate then rotate then scale
         case 5:
-            world = trs;
             glUseProgram(shaderUniformColor);
             glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
             glUniform3f(u_color, 0.0f, 1.0f, 1.0f);
