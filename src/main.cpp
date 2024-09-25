@@ -109,7 +109,7 @@ int main(void)
     // Fetch handles to uniform ("constant") variables.
     // OpenGL handles are like addresses (&) in c++ -- they tell us the location of our data on the GPU.
     // In the case of uniforms, we need to know their handle (location) before we can use them!
-    GLint u_world = glGetUniformLocation(shaderUniformColor, "u_world");
+    GLint u_mvp = glGetUniformLocation(shaderUniformColor, "u_mvp");
     GLint u_color = glGetUniformLocation(shaderUniformColor, "u_color");
     GLint u_intensity = glGetUniformLocation(shaderUniformColor, "u_intensity");
 
@@ -117,7 +117,7 @@ int main(void)
     printf("Object %i\n", object + 1);
 
     Matrix view = LookAt({ 0.0f, 0.0f, 5.0f }, V3_ZERO, V3_UP);
-    Matrix proj = Ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 10.0f);
+    Matrix proj = Ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 10.0f);
     // Optional homework: use the Perspective function to see how the projection changes!
 
     /* Loop until the user closes the window */
@@ -127,16 +127,33 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT);
 
         float time = glfwGetTime();
-        Matrix s = MatrixIdentity();//Scale(0.5f, 0.5f, 0.5f);
-        Matrix r = MatrixIdentity();//RotateZ(time * 100.0f * DEG2RAD);
-        Matrix t = MatrixIdentity();//Translate(0.75f, 0.5f, 0.0f);
 
         // Interpolation parameter (0 means fully A, 1 means fully B)
         float a = cosf(time) * 0.5f + 0.5f;
-        Vector3 A = { -1.0f, 0.0f, 0.0f };
-        Vector3 B = {  1.0f, 0.0f, 0.0f };
-        Vector3 C = Lerp(A, B, a);
-        t = Translate(C);
+
+        // Interpolate scale
+        Vector3 sA = V3_ONE;
+        Vector3 sB = V3_ONE * 10.0f;
+        Vector3 sC = Lerp(sA, sB, a);
+
+        // Interpolate rotation (slerp = "spherical lerp" because we rotate in a circle) 
+        Quaternion rA = QuaternionIdentity();
+        Quaternion rB = FromEuler(0.0f, 0.0f, 90.0f * DEG2RAD);
+        Quaternion rC = Slerp(rA, rB, a);
+
+        // Interpolate translation
+        Vector3 tA = { -10.0f, 0.0f, 0.0f };
+        Vector3 tB = {  10.0f, 0.0f, 0.0f };
+        Vector3 tC = Lerp(tA, tB, a);
+
+        // Interpolate color
+        Vector3 cA = V3_UP;
+        Vector3 cB = V3_FORWARD;
+        Vector3 cC = Lerp(cA, cB, a);
+
+        Matrix s = Scale(sC);
+        Matrix r = ToMatrix(rC);
+        Matrix t = Translate(tC);
 
         Matrix world = s * r * t;
         Matrix mvp = world * view * proj;
@@ -145,40 +162,40 @@ int main(void)
         {
         case 1:
             glUseProgram(shaderUniformColor);
-            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(mvp).v);
-            glUniform3f(u_color, 1.0f, 0.0f, 0.0f);
-            glUniform1f(u_intensity, 1.0f);
+            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            glUniform3fv(u_color, 1, &cC.x);
+            glUniform1f(u_intensity, a);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
         case 2:
             glUseProgram(shaderVertexBufferColor);
-            //glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
-            //glUniform3f(u_color, 0.0f, 1.0f, 0.0f);
+            //glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            //glUniform3fv(u_color, 1, &cC.x);
             //glUniform1f(u_intensity, 1.0f);
             glDrawArrays(GL_LINE_LOOP, 0, 3);
             break;
 
         case 3:
             glUseProgram(shaderUniformColor);
-            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
-            glUniform3f(u_color, 0.0f, 0.0f, 1.0f);
-            glUniform1f(u_intensity, 1.0f);
+            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            glUniform3fv(u_color, 1, &cC.x);
+            glUniform1f(u_intensity, 1.0 - a);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
         case 4:
             glUseProgram(shaderUniformColor);
-            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
-            glUniform3f(u_color, 1.0f, 0.0f, 1.0f);
-            glUniform1f(u_intensity, 1.0f);
+            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            glUniform3fv(u_color, 1, &cC.x);
+            glUniform1f(u_intensity, 0.25f);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
         case 5:
             glUseProgram(shaderUniformColor);
-            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
-            glUniform3f(u_color, 0.0f, 1.0f, 1.0f);
+            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            glUniform3fv(u_color, 1, &cC.x);
             glUniform1f(u_intensity, 1.0f);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
