@@ -109,7 +109,6 @@ int main(void)
     // Fetch handles to uniform ("constant") variables.
     // OpenGL handles are like addresses (&) in c++ -- they tell us the location of our data on the GPU.
     // In the case of uniforms, we need to know their handle (location) before we can use them!
-    GLint u_mvp = glGetUniformLocation(shaderUniformColor, "u_mvp");
     GLint u_color = glGetUniformLocation(shaderUniformColor, "u_color");
     GLint u_intensity = glGetUniformLocation(shaderUniformColor, "u_intensity");
 
@@ -157,14 +156,20 @@ int main(void)
 
         Matrix world = s * r * t;
         Matrix mvp = world * view * proj;
+        GLint u_mvp = GL_NONE;
 
         switch (object + 1)
         {
         case 1:
-            glUseProgram(shaderUniformColor);
+            glUseProgram(shaderVertexBufferColor);
+            u_mvp = glGetUniformLocation(shaderUniformColor, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glUniform3fv(u_color, 1, &cC.x);
-            glUniform1f(u_intensity, a);
+            // Optional homework:
+            // Modify all shaders to include a uniform colour and uniform intensity variable
+            // Multiply the interpolated colour by the uniform colour for maximum customization!
+            // (**Note that multiplying by 1 results in no change, which may be desireable**)
+            //glUniform3fv(u_color, 1, &cC.x);
+            //glUniform1f(u_intensity, a);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
@@ -178,6 +183,7 @@ int main(void)
 
         case 3:
             glUseProgram(shaderUniformColor);
+            u_mvp = glGetUniformLocation(shaderUniformColor, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
             glUniform3fv(u_color, 1, &cC.x);
             glUniform1f(u_intensity, 1.0 - a);
@@ -186,6 +192,7 @@ int main(void)
 
         case 4:
             glUseProgram(shaderUniformColor);
+            u_mvp = glGetUniformLocation(shaderUniformColor, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
             glUniform3fv(u_color, 1, &cC.x);
             glUniform1f(u_intensity, 0.25f);
@@ -194,6 +201,7 @@ int main(void)
 
         case 5:
             glUseProgram(shaderUniformColor);
+            u_mvp = glGetUniformLocation(shaderUniformColor, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
             glUniform3fv(u_color, 1, &cC.x);
             glUniform1f(u_intensity, 1.0f);
