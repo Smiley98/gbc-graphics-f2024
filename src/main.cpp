@@ -50,10 +50,12 @@ int main(void)
 
     // Vertex shaders:
     GLuint vs = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/default.vert");
+    GLuint vsLines = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/lines.vert");
     GLuint vsVertexPositionColor = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/vertex_color.vert");
     GLuint vsColorBufferColor = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/buffer_color.vert");
     
     // Fragment shaders:
+    GLuint fsLines = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/lines.frag");
     GLuint fsUniformColor = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/uniform_color.frag");
     GLuint fsVertexColor = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/vertex_color.frag");
     
@@ -61,6 +63,7 @@ int main(void)
     GLuint shaderUniformColor = CreateProgram(vs, fsUniformColor);
     GLuint shaderVertexPositionColor = CreateProgram(vsVertexPositionColor, fsVertexColor);
     GLuint shaderVertexBufferColor = CreateProgram(vsColorBufferColor, fsVertexColor);
+    GLuint shaderLines = CreateProgram(vsLines, fsLines);
 
     // Positions of our triangle's vertices (CCW winding-order)
     Vector3 positions[] =
@@ -78,10 +81,26 @@ int main(void)
         0.0f, 0.0f, 1.0f    // vertex 3
     };
 
+    Vector2 curr[4]
+    {
+        { -1.0f,  1.0f },   // top-left
+        {  1.0f,  1.0f },   // top-right
+        {  1.0f, -1.0f },   // bot-right
+        { -1.0f, -1.0f }    // bot-left
+    };
+
+    Vector2 next[4]
+    {
+        (curr[0] + curr[1]) * 0.5f,
+        (curr[1] + curr[2]) * 0.5f,
+        (curr[2] + curr[3]) * 0.5f,
+        (curr[3] + curr[0]) * 0.5f
+    };
+
     // vao = "Vertex Array Object". A vao is a collection of vbos.
     // vbo = "Vertex Buffer Object". "Buffer" generally means "group of memory".
     // A vbo is a piece of graphics memory VRAM.
-    GLuint vao, pbo, cbo;   // pbo = "position buffer object", "cbo = color buffer object"
+    GLuint vao, pbo, cbo;       // pbo = "position buffer object", "cbo = color buffer object"
     glGenVertexArrays(1, &vao); // Allocate a vao handle
     glBindVertexArray(vao);     // Bind = "associate all bound buffer object with the current array object"
     
@@ -89,15 +108,25 @@ int main(void)
     glGenBuffers(1, &pbo);              // Allocate a vbo handle
     glBindBuffer(GL_ARRAY_BUFFER, pbo); // Associate this buffer with the bound vertex array
     glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), positions, GL_STATIC_DRAW);  // Upload the buffer
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);          // Describe the buffer
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), 0);          // Describe the buffer
     glEnableVertexAttribArray(0);
 
     // Create color buffer:
     glGenBuffers(1, &cbo);              // Allocate a vbo handle
     glBindBuffer(GL_ARRAY_BUFFER, cbo); // Associate this buffer with the bound vertex array
     glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), colours, GL_STATIC_DRAW);    // Upload the buffer
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);          // Describe the buffer
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), 0);          // Describe the buffer
     glEnableVertexAttribArray(1);
+
+    GLuint vaoLines, pboLines, cboLines;
+    glGenVertexArrays(1, &vaoLines);
+    glBindVertexArray(vaoLines);
+
+    glGenBuffers(1, &pboLines);
+    glBindBuffer(GL_ARRAY_BUFFER, pboLines);
+    glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(Vector2), curr, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
+    glEnableVertexAttribArray(0);
 
     // In summary, we need 3 things to render:
     // 1. Vertex data -- right now just positions.
@@ -169,6 +198,7 @@ int main(void)
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
             //glUniform3fv(u_color, 1, &cC.x);
             //glUniform1f(u_intensity, a);
+            glBindVertexArray(vao);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
@@ -179,17 +209,16 @@ int main(void)
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
             //glUniform3fv(u_color, 1, &cC.x);
             //glUniform1f(u_intensity, 1.0f);
+            glBindVertexArray(vao);
             glDrawArrays(GL_LINE_LOOP, 0, 3);
             break;
 
         case 3:
-            shaderProgram = shaderUniformColor;
+            shaderProgram = shaderLines;
             glUseProgram(shaderProgram);
-            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glUniform3fv(u_color, 1, &cC.x);
-            glUniform1f(u_intensity, 1.0 - a);
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+            glLineWidth(10.0f);
+            glBindVertexArray(vaoLines);
+            glDrawArrays(GL_LINE_LOOP, 0, 4);
             break;
 
         case 4:
@@ -198,7 +227,8 @@ int main(void)
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
             glUniform3fv(u_color, 1, &cC.x);
-            glUniform1f(u_intensity, 0.25f);
+            glUniform1f(u_intensity, 1.0);
+            glBindVertexArray(vao);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
 
@@ -208,7 +238,8 @@ int main(void)
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
             glUniform3fv(u_color, 1, &cC.x);
-            glUniform1f(u_intensity, 1.0f);
+            glUniform1f(u_intensity, 1.0f - a);
+            glBindVertexArray(vao);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
         }
