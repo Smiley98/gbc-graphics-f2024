@@ -214,10 +214,15 @@ int main(void)
             break;
 
         case 3:
+            // TODO -- read up on glBufferSubData to understand what on earth just happened ;)
             shaderProgram = shaderLines;
             glUseProgram(shaderProgram);
+            glUniform1f(glGetUniformLocation(shaderProgram, "u_a"), a);
             glLineWidth(10.0f);
             glBindVertexArray(vaoLines);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * sizeof(Vector2), curr);
+            glDrawArrays(GL_LINE_LOOP, 0, 4);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * sizeof(Vector2), next);
             glDrawArrays(GL_LINE_LOOP, 0, 4);
             break;
 
