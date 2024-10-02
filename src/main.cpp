@@ -2,6 +2,10 @@
 #include <GLFW/glfw3.h>
 #include "Math.h"
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
+
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
@@ -14,6 +18,7 @@ constexpr int SCREEN_HEIGHT = 720;
 
 void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+void error_callback(int error, const char* description);
 
 GLuint CreateShader(GLint type, const char* path);
 GLuint CreateProgram(GLuint vs, GLuint fs);
@@ -27,7 +32,7 @@ void Print(Matrix m);
 
 int main(void)
 {
-    // Lines 20-40 are all window creation. You can ignore this if you want ;)
+    glfwSetErrorCallback(error_callback);
     assert(glfwInit() == GLFW_TRUE);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -47,6 +52,15 @@ int main(void)
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(glDebugOutput, nullptr);
 #endif
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    //ImGuiIO& io = ImGui::GetIO(); (void)io;
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 460");
 
     // Vertex shaders:
     GLuint vs = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/default.vert");
@@ -115,7 +129,7 @@ int main(void)
     glGenBuffers(1, &cbo);              // Allocate a vbo handle
     glBindBuffer(GL_ARRAY_BUFFER, cbo); // Associate this buffer with the bound vertex array
     glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), colours, GL_STATIC_DRAW);    // Upload the buffer
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), 0);          // Describe the buffer
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);      // Describe the buffer
     glEnableVertexAttribArray(1);
 
     GLuint vaoLines, pboLines, cboLines;
@@ -148,9 +162,18 @@ int main(void)
     Matrix proj = Ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 10.0f);
     // Optional homework: use the Perspective function to see how the projection changes!
 
+    bool imguiDemo = true;
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
+        // Change object when space is pressed
+        if (IsKeyPressed(GLFW_KEY_SPACE))
+        {
+            ++object %= 5;
+            printf("Object %i\n", object + 1);
+        }
+
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -224,6 +247,7 @@ int main(void)
             glDrawArrays(GL_LINE_LOOP, 0, 4);
             glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * sizeof(Vector2), next);
             glDrawArrays(GL_LINE_LOOP, 0, 4);
+            // Extra practice / assignment work: Calculate more midpoints and render them here!
             break;
 
         case 4:
@@ -249,12 +273,12 @@ int main(void)
             break;
         }
 
-        // Change object when space is pressed
-        if (IsKeyPressed(GLFW_KEY_SPACE))
-        {
-            ++object %= 5;
-            printf("Object %i\n", object + 1);
-        }
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        ImGui::ShowDemoWindow(&imguiDemo);
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
@@ -264,6 +288,9 @@ int main(void)
         glfwPollEvents();
     }
 
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
     glfwTerminate();
     return 0;
 }
@@ -282,6 +309,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     //const char* name = glfwGetKeyName(key, scancode);
     //if (action == GLFW_PRESS)
     //    printf("%s\n", name);
+}
+
+void error_callback(int error, const char* description)
+{
+    printf("GLFW Error %d: %s\n", error, description);
 }
 
 // Compile a shader
