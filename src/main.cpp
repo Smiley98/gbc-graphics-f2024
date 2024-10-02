@@ -15,6 +15,7 @@
 
 constexpr int SCREEN_WIDTH = 1280;
 constexpr int SCREEN_HEIGHT = 720;
+constexpr float SCREEN_ASPECT = SCREEN_WIDTH / (float)SCREEN_HEIGHT;
 
 void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -29,6 +30,12 @@ bool IsKeyUp(int key);
 bool IsKeyPressed(int key);
 
 void Print(Matrix m);
+
+enum Projection : int
+{
+    ORTHO,  // Orthographic, 2D
+    PERSP   // Perspective,  3D
+};
 
 int main(void)
 {
@@ -155,14 +162,21 @@ int main(void)
     GLint u_color = glGetUniformLocation(shaderUniformColor, "u_color");
     GLint u_intensity = glGetUniformLocation(shaderUniformColor, "u_intensity");
 
-    int object = 0;
+    int object = 3;
     printf("Object %i\n", object + 1);
 
-    Matrix view = LookAt({ 0.0f, 0.0f, 5.0f }, V3_ZERO, V3_UP);
-    Matrix proj = Ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 10.0f);
-    // Optional homework: use the Perspective function to see how the projection changes!
+    Projection projection = PERSP;
+    Vector3 camPos{ 0.0f, 0.0f, 5.0f };
+    float fov = 75.0f * DEG2RAD;
+    float left = -1.0f;
+    float right = 1.0f;
+    float top = 1.0f;
+    float bottom = -1.0f;
+    float near = 1.0f; // 1.0 for testing purposes. Usually 0.1f or 0.01f
+    float far = 10.0f;
 
-    bool imguiDemo = true;
+    // Whether we render the imgui demo widgets
+    bool imguiDemo = false;
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
@@ -206,8 +220,12 @@ int main(void)
         Matrix r = ToMatrix(rC);
         Matrix t = Translate(tC);
 
-        Matrix world = s * r * t;
-        Matrix mvp = world * view * proj;
+        Matrix world = MatrixIdentity();
+        Matrix view = LookAt(camPos, camPos - V3_FORWARD, V3_UP);
+        Matrix proj = projection == ORTHO ?
+            Ortho(left, right, bottom, top, near, far) :
+            Perspective(fov, SCREEN_ASPECT, near, far);
+        Matrix mvp = MatrixIdentity();
         GLint u_mvp = GL_NONE;
 
         GLuint shaderProgram = GL_NONE;
@@ -217,10 +235,10 @@ int main(void)
         case 1:
             shaderProgram = shaderVertexBufferColor;
             glUseProgram(shaderProgram);
+            world = s * r * t;
+            mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            //glUniform3fv(u_color, 1, &cC.x);
-            //glUniform1f(u_intensity, a);
             glBindVertexArray(vao);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             break;
@@ -228,10 +246,10 @@ int main(void)
         case 2:
             shaderProgram = shaderVertexBufferColor;
             glUseProgram(shaderProgram);
+            world = s * r * t;
+            mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            //glUniform3fv(u_color, 1, &cC.x);
-            //glUniform1f(u_intensity, 1.0f);
             glBindVertexArray(vao);
             glDrawArrays(GL_LINE_LOOP, 0, 3);
             break;
@@ -253,9 +271,11 @@ int main(void)
         case 4:
             shaderProgram = shaderUniformColor;
             glUseProgram(shaderProgram);
+            world = MatrixIdentity();
+            mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glUniform3fv(u_color, 1, &cC.x);
+            glUniform3fv(u_color, 1, &V3_RIGHT.x);
             glUniform1f(u_intensity, 1.0);
             glBindVertexArray(vao);
             glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -264,9 +284,11 @@ int main(void)
         case 5:
             shaderProgram = shaderUniformColor;
             glUseProgram(shaderProgram);
+            world = MatrixIdentity();
+            mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glUniform3fv(u_color, 1, &cC.x);
+            glUniform3fv(u_color, 1, &V3_UP.x);
             glUniform1f(u_intensity, 1.0f - a);
             glBindVertexArray(vao);
             glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -276,7 +298,27 @@ int main(void)
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        ImGui::ShowDemoWindow(&imguiDemo);
+        if (imguiDemo)
+            ImGui::ShowDemoWindow();
+        ImGui::SliderFloat3("Camera Position", &camPos.x, -10.0f, 10.0f);
+
+        ImGui::RadioButton("Orthographic", (int*)&projection, 0); ImGui::SameLine();
+        ImGui::RadioButton("Perspective", (int*)& projection, 1);
+
+        ImGui::SliderFloat("Near", &near, -10.0f, 10.0f);
+        ImGui::SliderFloat("Far", &far, -10.0f, 10.0f);
+        if (projection == ORTHO)
+        {
+            ImGui::SliderFloat("Left", &left, -1.0f, -10.0f);
+            ImGui::SliderFloat("Right", &right, 1.0f, 10.0f);
+            ImGui::SliderFloat("Top", &top, 1.0f, 10.0f);
+            ImGui::SliderFloat("Bottom", &bottom, -1.0f, -10.0f);
+        }
+        else if (projection == PERSP)
+        {
+            ImGui::SliderAngle("FoV", &fov, 10.0f, 90.0f);
+        }
+
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
