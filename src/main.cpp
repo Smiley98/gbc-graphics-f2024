@@ -1,6 +1,6 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "Math.h"
+#include "Mesh.h"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
@@ -177,6 +177,9 @@ int main(void)
 
     // Whether we render the imgui demo widgets
     bool imguiDemo = false;
+
+    Mesh mesh;
+    CreateMesh(&mesh, PLANE);
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
