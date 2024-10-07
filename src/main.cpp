@@ -180,8 +180,12 @@ int main(void)
     // Whether we render the imgui demo widgets
     bool imguiDemo = false;
 
-    Mesh mesh;
-    CreateMesh(&mesh, PLANE);
+    Mesh shapeMesh;
+    CreateMesh(&shapeMesh, SPHERE);
+
+    // Render looks weird cause this isn't enabled, but its causing unexpected problems which I'll fix soon!
+    //glEnable(GL_DEPTH_TEST);
+    //glDepthFunc(GL_LESS);
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
@@ -229,7 +233,7 @@ int main(void)
         Matrix t = Translate(tC);
 
         Matrix world = MatrixIdentity();
-        Matrix view = LookAt(camPos, camPos - V3_FORWARD, V3_UP);
+        Matrix view = LookAt(camPos, {}, V3_UP);
         Matrix proj = projection == ORTHO ?
             Ortho(left, right, bottom, top, near, far) :
             Perspective(fov, SCREEN_ASPECT, near, far);
@@ -292,11 +296,12 @@ int main(void)
         case 5:
             shaderProgram = shaderVertexPositionColor;
             glUseProgram(shaderProgram);
-            world = MatrixIdentity();
+            //world = MatrixIdentity();
+            world = RotateY(100.0f * time * DEG2RAD);
             mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            DrawMesh(mesh);
+            DrawMesh(shapeMesh);
             break;
         }
 

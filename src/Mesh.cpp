@@ -9,7 +9,25 @@ void CreateMesh(Mesh* mesh, ShapeType shape)
 {
 	// 1. Generate par_shapes_mesh
 	par_shapes_mesh* par = nullptr;
-	par = par_shapes_create_plane(1, 1);
+	switch (shape)
+	{
+	case PLANE:
+		par = par_shapes_create_plane(1, 1);
+		break;
+
+	case CUBE:
+		par = par_shapes_create_cube();
+		break;
+
+	case SPHERE:
+		par = par_shapes_create_subdivided_sphere(1);
+		break;
+
+	default:
+		assert(false, "Invalid shape type");
+		break;
+	}
+	
 	par_shapes_compute_normals(par);
 
 	// 2. Convert par_shapes_mesh to our Mesh representation
