@@ -188,6 +188,9 @@ int main(void)
             printf("Object %i\n", object + 1);
         }
 
+        if (IsKeyPressed(GLFW_KEY_I))
+            imguiDemo = !imguiDemo;
+
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -300,25 +303,28 @@ int main(void)
         ImGui::NewFrame();
         if (imguiDemo)
             ImGui::ShowDemoWindow();
-        ImGui::SliderFloat3("Camera Position", &camPos.x, -10.0f, 10.0f);
-
-        ImGui::RadioButton("Orthographic", (int*)&projection, 0); ImGui::SameLine();
-        ImGui::RadioButton("Perspective", (int*)& projection, 1);
-
-        ImGui::SliderFloat("Near", &near, -10.0f, 10.0f);
-        ImGui::SliderFloat("Far", &far, -10.0f, 10.0f);
-        if (projection == ORTHO)
+        else
         {
-            ImGui::SliderFloat("Left", &left, -1.0f, -10.0f);
-            ImGui::SliderFloat("Right", &right, 1.0f, 10.0f);
-            ImGui::SliderFloat("Top", &top, 1.0f, 10.0f);
-            ImGui::SliderFloat("Bottom", &bottom, -1.0f, -10.0f);
-        }
-        else if (projection == PERSP)
-        {
-            ImGui::SliderAngle("FoV", &fov, 10.0f, 90.0f);
-        }
+            ImGui::SliderFloat3("Camera Position", &camPos.x, -10.0f, 10.0f);
 
+            ImGui::RadioButton("Orthographic", (int*)&projection, 0); ImGui::SameLine();
+            ImGui::RadioButton("Perspective", (int*)&projection, 1);
+
+            ImGui::SliderFloat("Near", &near, -10.0f, 10.0f);
+            ImGui::SliderFloat("Far", &far, -10.0f, 10.0f);
+            if (projection == ORTHO)
+            {
+                ImGui::SliderFloat("Left", &left, -1.0f, -10.0f);
+                ImGui::SliderFloat("Right", &right, 1.0f, 10.0f);
+                ImGui::SliderFloat("Top", &top, 1.0f, 10.0f);
+                ImGui::SliderFloat("Bottom", &bottom, -1.0f, -10.0f);
+            }
+            else if (projection == PERSP)
+            {
+                ImGui::SliderAngle("FoV", &fov, 10.0f, 90.0f);
+            }
+        }
+        
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
