@@ -33,3 +33,5 @@ struct Mesh
 
 void CreateMesh(Mesh* mesh, ShapeType shape);
 void DestroyMesh(Mesh* mesh);
+
+void DrawMesh(const Mesh& mesh);

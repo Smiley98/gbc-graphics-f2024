@@ -149,6 +149,8 @@ int main(void)
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
     glEnableVertexAttribArray(0);
 
+    glBindVertexArray(GL_NONE);
+
     // In summary, we need 3 things to render:
     // 1. Vertex data -- right now just positions.
     // 2. Shader -- vs forwards input, fs colours.
@@ -288,16 +290,13 @@ int main(void)
             break;
 
         case 5:
-            shaderProgram = shaderUniformColor;
+            shaderProgram = shaderVertexPositionColor;
             glUseProgram(shaderProgram);
             world = MatrixIdentity();
             mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glUniform3fv(u_color, 1, &V3_UP.x);
-            glUniform1f(u_intensity, 1.0f - a);
-            glBindVertexArray(vao);
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+            DrawMesh(mesh);
             break;
         }
 
