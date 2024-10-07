@@ -79,12 +79,16 @@ int main(void)
     GLuint fsLines = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/lines.frag");
     GLuint fsUniformColor = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/uniform_color.frag");
     GLuint fsVertexColor = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/vertex_color.frag");
+    GLuint fsTcoords = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/tcoord_color.frag");
+    GLuint fsNormals = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/normal_color.frag");
     
     // Shader programs:
     GLuint shaderUniformColor = CreateProgram(vs, fsUniformColor);
     GLuint shaderVertexPositionColor = CreateProgram(vsVertexPositionColor, fsVertexColor);
     GLuint shaderVertexBufferColor = CreateProgram(vsColorBufferColor, fsVertexColor);
     GLuint shaderLines = CreateProgram(vsLines, fsLines);
+    GLuint shaderTcoords = CreateProgram(vs, fsTcoords);
+    GLuint shaderNormals = CreateProgram(vs, fsNormals);
 
     // Positions of our triangle's vertices (CCW winding-order)
     Vector3 positions[] =
@@ -181,7 +185,7 @@ int main(void)
     bool imguiDemo = false;
 
     Mesh shapeMesh;
-    CreateMesh(&shapeMesh, SPHERE);
+    CreateMesh(&shapeMesh, PLANE);
 
     // Render looks weird cause this isn't enabled, but its causing unexpected problems which I'll fix soon!
     //glEnable(GL_DEPTH_TEST);
@@ -294,7 +298,7 @@ int main(void)
             break;
 
         case 5:
-            shaderProgram = shaderVertexPositionColor;
+            shaderProgram = shaderTcoords;
             glUseProgram(shaderProgram);
             //world = MatrixIdentity();
             world = RotateY(100.0f * time * DEG2RAD);
