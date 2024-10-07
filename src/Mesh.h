@@ -1,6 +1,5 @@
 #pragma once
 #include <glad/glad.h>
-#include <par_shapes.h>
 #include <vector>
 #include "Math.h"
 
@@ -31,6 +30,7 @@ struct Mesh
 	GLuint ebo = GL_NONE;	// Element buffer object (indices)
 };
 
+void CreateMesh(Mesh* mesh, const char* path);
 void CreateMesh(Mesh* mesh, ShapeType shape);
 void DestroyMesh(Mesh* mesh);
 

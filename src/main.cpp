@@ -184,12 +184,13 @@ int main(void)
     // Whether we render the imgui demo widgets
     bool imguiDemo = false;
 
-    Mesh shapeMesh;
+    Mesh shapeMesh, objMesh;
     CreateMesh(&shapeMesh, PLANE);
+    CreateMesh(&objMesh, "assets/meshes/plane.obj");
 
     // Render looks weird cause this isn't enabled, but its causing unexpected problems which I'll fix soon!
-    //glEnable(GL_DEPTH_TEST);
-    //glDepthFunc(GL_LESS);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
@@ -205,7 +206,7 @@ int main(void)
             imguiDemo = !imguiDemo;
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         float time = glfwGetTime();
 
@@ -237,7 +238,7 @@ int main(void)
         Matrix t = Translate(tC);
 
         Matrix world = MatrixIdentity();
-        Matrix view = LookAt(camPos, {}, V3_UP);
+        Matrix view = LookAt(camPos, camPos - V3_FORWARD, V3_UP);
         Matrix proj = projection == ORTHO ?
             Ortho(left, right, bottom, top, near, far) :
             Perspective(fov, SCREEN_ASPECT, near, far);
@@ -298,10 +299,10 @@ int main(void)
             break;
 
         case 5:
-            shaderProgram = shaderTcoords;
+            shaderProgram = shaderNormals;
             glUseProgram(shaderProgram);
-            //world = MatrixIdentity();
-            world = RotateY(100.0f * time * DEG2RAD);
+            world = MatrixIdentity();
+            //world = RotateY(100.0f * time * DEG2RAD);
             mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);

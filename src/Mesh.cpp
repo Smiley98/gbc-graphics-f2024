@@ -1,9 +1,52 @@
 #define PAR_SHAPES_IMPLEMENTATION
+#define FAST_OBJ_IMPLEMENTATION
+#include <par_shapes.h>
+#include <fast_obj.h>
 #include "Mesh.h"
 #include <cassert>
 #include <cstdio>
 
 void Upload(Mesh* mesh);
+
+void CreateMesh(Mesh* mesh, const char* path)
+{
+	fastObjMesh* obj = fast_obj_read(path);
+	int count = obj->index_count;
+	mesh->positions.resize(count);
+	mesh->normals.resize(count);
+	
+	assert(obj->position_count > 1);
+	for (int i = 0; i < count; i++)
+	{
+		// Using the obj file's indices, populate the mesh->positions with the object's vertex positions
+		fastObjIndex idx = obj->indices[i];
+	}
+	
+	assert(obj->normal_count > 1);
+	for (int i = 0; i < count; i++)
+	{
+		// Using the obj file's indices, populate the mesh->normals with the object's vertex normals
+		fastObjIndex idx = obj->indices[i];
+	}
+	
+	if (obj->texcoord_count > 1)
+	{
+		mesh->tcoords.resize(count);
+		for (int i = 0; i < count; i++)
+		{
+			// Using the obj file's indices, populate the mesh->tcoords with the object's vertex texture coordinates
+			fastObjIndex idx = obj->indices[i];
+		}
+	}
+	else
+	{
+		printf("**Warning: mesh %s loaded without texture coordinates**\n", path);
+	}
+	fast_obj_destroy(obj);
+	mesh->count = count;
+
+	Upload(mesh);
+}
 
 void CreateMesh(Mesh* mesh, ShapeType shape)
 {
