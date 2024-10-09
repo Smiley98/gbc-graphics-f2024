@@ -168,7 +168,7 @@ int main(void)
     GLint u_color = glGetUniformLocation(shaderUniformColor, "u_color");
     GLint u_intensity = glGetUniformLocation(shaderUniformColor, "u_intensity");
 
-    int object = 3;
+    int object = 0;
     printf("Object %i\n", object + 1);
 
     Projection projection = PERSP;
@@ -278,8 +278,11 @@ int main(void)
             glUniform1f(glGetUniformLocation(shaderProgram, "u_a"), a);
             glLineWidth(10.0f);
             glBindVertexArray(vaoLines);
+            glBindBuffer(GL_ARRAY_BUFFER, pboLines);
+
             glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * sizeof(Vector2), curr);
             glDrawArrays(GL_LINE_LOOP, 0, 4);
+
             glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * sizeof(Vector2), next);
             glDrawArrays(GL_LINE_LOOP, 0, 4);
             // Extra practice / assignment work: Calculate more midpoints and render them here!
