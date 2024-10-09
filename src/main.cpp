@@ -37,6 +37,12 @@ enum Projection : int
     PERSP   // Perspective,  3D
 };
 
+struct Line
+{
+    Vector2 start;
+    Vector2 end;
+};
+
 int main(void)
 {
     glfwSetErrorCallback(error_callback);
@@ -143,7 +149,7 @@ int main(void)
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);      // Describe the buffer
     glEnableVertexAttribArray(1);
 
-    GLuint vaoLines, pboLines, cboLines;
+    GLuint vaoLines, pboLines, cboLines; // Note that cboLines is currently unused.
     glGenVertexArrays(1, &vaoLines);
     glBindVertexArray(vaoLines);
 
@@ -151,6 +157,30 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, pboLines);
     glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(Vector2), curr, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(GL_NONE);
+
+    // NDC so left = -1, right = 1
+    // Render 1 line for every horizontal pixel
+    std::vector<Line> lines(SCREEN_WIDTH);
+    for (int i = 0; i < SCREEN_WIDTH; i++)
+    {
+        Line& line = lines[i];
+        float x = Remap(i, 0, SCREEN_WIDTH, -1.0f, 1.0f);
+        line.start.x = line.end.x = x;
+        line.start.y = Random(-1.0f, 1.0f);
+        line.end.y = Random(-1.0f, 1.0f);
+    }
+
+    GLuint vaoMoreLines, pboMoreLines, cboMoreLines;
+    glGenVertexArrays(1, &vaoMoreLines);
+    glBindVertexArray(vaoMoreLines);
+
+    glGenBuffers(1, &pboMoreLines);
+    glBindBuffer(GL_ARRAY_BUFFER, pboMoreLines);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Line) * lines.size(), lines.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Line), nullptr);
     glEnableVertexAttribArray(0);
 
     glBindVertexArray(GL_NONE);
@@ -272,7 +302,6 @@ int main(void)
             break;
 
         case 3:
-            // TODO -- read up on glBufferSubData to understand what on earth just happened ;)
             shaderProgram = shaderLines;
             glUseProgram(shaderProgram);
             glUniform1f(glGetUniformLocation(shaderProgram, "u_a"), a);
@@ -285,20 +314,14 @@ int main(void)
 
             glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * sizeof(Vector2), next);
             glDrawArrays(GL_LINE_LOOP, 0, 4);
-            // Extra practice / assignment work: Calculate more midpoints and render them here!
             break;
 
         case 4:
-            shaderProgram = shaderUniformColor;
+            shaderProgram = shaderLines;
             glUseProgram(shaderProgram);
-            world = MatrixIdentity();
-            mvp = world * view * proj;
-            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glUniform3fv(u_color, 1, &V3_RIGHT.x);
-            glUniform1f(u_intensity, 1.0);
-            glBindVertexArray(vao);
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+            glLineWidth(1.0f);
+            glBindVertexArray(vaoMoreLines);
+            glDrawArrays(GL_LINES, 0, SCREEN_WIDTH * 2);
             break;
 
         case 5:
