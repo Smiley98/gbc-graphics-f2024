@@ -161,61 +161,56 @@ int main(void)
 
     glBindVertexArray(GL_NONE);
 
-    Vector2 linePositions[4]
-    {
-        { -1.0f, -1.0f },   // v0 start
-        {  1.0f,  1.0f },   // v0 end
-
-        { -1.0f, 0.5f },    // v1 start 
-        {  1.0f, 0.5f },    // v1 end
-    };
-
-    Vector3 lineColors[4]
-    {
-        V3_RIGHT,   // v0 start
-        V3_UP,      // v0 end
-        V3_RIGHT,   // v1 start
-        V3_FORWARD  // v1 end
-    };
-
-    // NDC so left = -1, right = 1
-    // Render 1 line for every horizontal pixel
-    //std::vector<Line> lines(SCREEN_WIDTH);
-    //for (int i = 0; i < SCREEN_WIDTH; i++)
+    // Example of how to draw 2 separate lines each with unique vertex colours
+    //Vector2 linePositions[4]
     //{
-    //    Line& line = lines[i];
-    //    float x = Remap(i, 0, SCREEN_WIDTH, -1.0f, 1.0f);
-    //    line.start.x = line.end.x = x;
-    //    //line.start.y = Random(-1.0f, 1.0f);
-    //    //line.end.y = Random(-1.0f, 1.0f);
+    //    { -1.0f, -1.0f },   // v0 start
+    //    {  1.0f,  1.0f },   // v0 end
     //
-    //    //line.start.y = -0.5f;
-    //    //line.end.y = 0.5f;
-    //}
-
-    //std::vector<Vector3> lineColors(SCREEN_WIDTH);
-    //for (int i = 0; i < SCREEN_WIDTH; i++)
+    //    { -1.0f, 0.5f },    // v1 start 
+    //    {  1.0f, 0.5f },    // v1 end
+    //};
+    //
+    //Vector3 lineColors[4]
     //{
-    //    lineColors[i].x = Random(0.0f, 1.0f);
-    //    lineColors[i].y = Random(0.0f, 1.0f);
-    //    lineColors[i].z = Random(0.0f, 1.0f);
-    //    lineColors[i] = (i % 2 == 0) ? V3_RIGHT : V3_UP;
-    //}
+    //    V3_RIGHT,   // v0 start
+    //    V3_UP,      // v0 end
+    //    V3_ONE,     // v1 start
+    //    V3_FORWARD  // v1 end
+    //};
 
     // GL_LINES: Vertices 0 and 1 are considered a line. Vertices 2 and 3 are considered a line. And so on.
+    int lineVertexCount = SCREEN_WIDTH * 2;
+    std::vector<Vector2> linePositions(lineVertexCount);
+    std::vector<Vector3> lineColors(lineVertexCount);
+
+    // Since lines are 2 vertices each, its easier to count up by 2 each iteration
+    for (int i = 0; i < lineVertexCount; i += 2)
+    {
+        float x = Remap(i, 0, lineVertexCount, -1.0f, 1.0f);
+        int A = i + 0;
+        int B = i + 1;
+        linePositions[A].x = x;
+        linePositions[B].x = x;
+        linePositions[A].y =  1.0f;
+        linePositions[B].y = -1.0f;
+        lineColors[A] = V3_RIGHT;
+        lineColors[B] = V3_UP;
+    }
+
     GLuint vaoMoreLines, pboMoreLines, cboMoreLines;
     glGenVertexArrays(1, &vaoMoreLines);
     glBindVertexArray(vaoMoreLines);
 
     glGenBuffers(1, &pboMoreLines);
     glBindBuffer(GL_ARRAY_BUFFER, pboMoreLines);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2) * 4, linePositions, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2) * lineVertexCount, linePositions.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
     glEnableVertexAttribArray(0);
 
     glGenBuffers(1, &cboMoreLines);
     glBindBuffer(GL_ARRAY_BUFFER, cboMoreLines);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * 4, lineColors, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * lineVertexCount, lineColors.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
     glEnableVertexAttribArray(1);
 
@@ -369,8 +364,7 @@ int main(void)
             glUseProgram(shaderProgram);
             glLineWidth(1.0f);
             glBindVertexArray(vaoMoreLines);
-            glDrawArrays(GL_LINES, 0, 4);
-            //glDrawArrays(GL_LINES, 0, SCREEN_WIDTH * 2);
+            glDrawArrays(GL_LINES, 0, lineVertexCount);
             break;
 
         case 5:
