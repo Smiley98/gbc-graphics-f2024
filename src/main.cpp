@@ -173,51 +173,68 @@ int main(void)
     glBindVertexArray(GL_NONE);
 
     // GL_LINES: Vertices 0 and 1 are considered a line. Vertices 2 and 3 are considered a line. And so on.
-    int lineVertexCount = SCREEN_WIDTH * 2;
+    //int lineVertexCount = SCREEN_WIDTH * 2;
+    //std::vector<Vector2> linePositions(lineVertexCount);
+    //std::vector<Vector3> lineColors(lineVertexCount);
+    //
+    //// Since lines are 2 vertices each, its easier to count up by 2 each iteration
+    //for (int i = 0; i < lineVertexCount; i += 2)
+    //{
+    //    float x = Remap(i, 0, lineVertexCount, -1.0f, 1.0f);
+    //    int A = i + 0;
+    //    int B = i + 1;
+    //    linePositions[A].x = x;
+    //    linePositions[B].x = x;
+    //    linePositions[A].y =  1.0f;
+    //    linePositions[B].y = -1.0f;
+    //    lineColors[A] = V3_RIGHT;
+    //    lineColors[B] = V3_UP;
+    //}
+    
+    // 1 square has ***8*** vertices worth of lines (2 vertices per line * 4 lines)
+    size_t lineVertexCount = 8;
     std::vector<Vector2> linePositions(lineVertexCount);
     std::vector<Vector3> lineColors(lineVertexCount);
 
-    // Since lines are 2 vertices each, its easier to count up by 2 each iteration
-    for (int i = 0; i < lineVertexCount; i += 2)
-    {
-        float x = Remap(i, 0, lineVertexCount, -1.0f, 1.0f);
-        int A = i + 0;
-        int B = i + 1;
-        linePositions[A].x = x;
-        linePositions[B].x = x;
-        linePositions[A].y =  1.0f;
-        linePositions[B].y = -1.0f;
-        lineColors[A] = V3_RIGHT;
-        lineColors[B] = V3_UP;
-    }
+    // A (top)
+    linePositions[0] = { -1.0f,  1.0f };
+    linePositions[1] = {  1.0f,  1.0f };
+    lineColors[0] = V3_UP;
+    lineColors[1] = V3_UP;
 
-    GLuint vaoMoreLines, pboMoreLines, cboMoreLines;
-    glGenVertexArrays(1, &vaoMoreLines);
-    glBindVertexArray(vaoMoreLines);
+    // B (right)
+    linePositions[2] = linePositions[1];
+    linePositions[3] = { 1.0f, -1.0f };
+    lineColors[2] = V3_RIGHT;
+    lineColors[3] = V3_RIGHT;
 
-    glGenBuffers(1, &pboMoreLines);
-    glBindBuffer(GL_ARRAY_BUFFER, pboMoreLines);
+    // C (bottom)
+    linePositions[4] = linePositions[3];
+    linePositions[5] = { -1.0f, -1.0f };
+    lineColors[4] = V3_FORWARD;
+    lineColors[5] = V3_FORWARD;
+
+    // D (left)
+    linePositions[6] = linePositions[5];
+    linePositions[7] = linePositions[0];
+    lineColors[6] = V3_ONE;
+    lineColors[7] = V3_ONE;
+
+    GLuint vaoLines, pboLines, cboLines;
+    glGenVertexArrays(1, &vaoLines);
+    glBindVertexArray(vaoLines);
+
+    glGenBuffers(1, &pboLines);
+    glBindBuffer(GL_ARRAY_BUFFER, pboLines);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2) * lineVertexCount, linePositions.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
     glEnableVertexAttribArray(0);
 
-    glGenBuffers(1, &cboMoreLines);
-    glBindBuffer(GL_ARRAY_BUFFER, cboMoreLines);
+    glGenBuffers(1, &cboLines);
+    glBindBuffer(GL_ARRAY_BUFFER, cboLines);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * lineVertexCount, lineColors.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
     glEnableVertexAttribArray(1);
-
-    //glGenBuffers(1, &pboMoreLines);
-    //glBindBuffer(GL_ARRAY_BUFFER, pboMoreLines);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(Line) * lines.size(), lines.data(), GL_STATIC_DRAW);
-    //glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Line), nullptr);
-    //glEnableVertexAttribArray(0);
-
-    //glGenBuffers(1, &cboMoreLines);
-    //glBindBuffer(GL_ARRAY_BUFFER, cboMoreLines);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * lineColors.size(), lineColors.data(), GL_STATIC_DRAW);
-    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
-    //glEnableVertexAttribArray(1);
 
     glBindVertexArray(GL_NONE);
 
@@ -234,7 +251,7 @@ int main(void)
     GLint u_color = glGetUniformLocation(shaderUniformColor, "u_color");
     GLint u_intensity = glGetUniformLocation(shaderUniformColor, "u_intensity");
 
-    int object = 0;
+    int object = 3;
     printf("Object %i\n", object + 1);
 
     Projection projection = PERSP;
@@ -348,8 +365,8 @@ int main(void)
         case 4:
             shaderProgram = shaderLines;
             glUseProgram(shaderProgram);
-            glLineWidth(1.0f);
-            glBindVertexArray(vaoMoreLines);
+            glLineWidth(4.0f);
+            glBindVertexArray(vaoLines);
             glDrawArrays(GL_LINES, 0, lineVertexCount);
             break;
 
