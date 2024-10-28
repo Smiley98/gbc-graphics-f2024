@@ -77,6 +77,7 @@ int main(void)
 
     // Vertex shaders:
     GLuint vs = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/default.vert");
+    GLuint vsPoints = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/points.vert");
     GLuint vsLines = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/lines.vert");
     GLuint vsVertexPositionColor = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/vertex_color.vert");
     GLuint vsColorBufferColor = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/buffer_color.vert");
@@ -92,6 +93,7 @@ int main(void)
     GLuint shaderUniformColor = CreateProgram(vs, fsUniformColor);
     GLuint shaderVertexPositionColor = CreateProgram(vsVertexPositionColor, fsVertexColor);
     GLuint shaderVertexBufferColor = CreateProgram(vsColorBufferColor, fsVertexColor);
+    GLuint shaderPoints = CreateProgram(vsPoints, fsVertexColor);
     GLuint shaderLines = CreateProgram(vsLines, fsLines);
     GLuint shaderTcoords = CreateProgram(vs, fsTcoords);
     GLuint shaderNormals = CreateProgram(vs, fsNormals);
@@ -110,22 +112,6 @@ int main(void)
         1.0f, 0.0f, 0.0f,   // vertex 1
         0.0f, 1.0f, 0.0f,   // vertex 2
         0.0f, 0.0f, 1.0f    // vertex 3
-    };
-
-    Vector2 curr[4]
-    {
-        { -1.0f,  1.0f },   // top-left
-        {  1.0f,  1.0f },   // top-right
-        {  1.0f, -1.0f },   // bot-right
-        { -1.0f, -1.0f }    // bot-left
-    };
-
-    Vector2 next[4]
-    {
-        (curr[0] + curr[1]) * 0.5f,
-        (curr[1] + curr[2]) * 0.5f,
-        (curr[2] + curr[3]) * 0.5f,
-        (curr[3] + curr[0]) * 0.5f
     };
 
     // vao = "Vertex Array Object". A vao is a collection of vbos.
@@ -149,35 +135,39 @@ int main(void)
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);      // Describe the buffer
     glEnableVertexAttribArray(1);
 
-    GLuint vaoLines, pboLines, cboLines; // Note that cboLines is currently unused.
-    glGenVertexArrays(1, &vaoLines);
-    glBindVertexArray(vaoLines);
-
-    glGenBuffers(1, &pboLines);
-    glBindBuffer(GL_ARRAY_BUFFER, pboLines);
-    glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(Vector2), curr, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
-    glEnableVertexAttribArray(0);
-
     glBindVertexArray(GL_NONE);
 
-    // Example of how to draw 2 separate lines each with unique vertex colours
-    //Vector2 linePositions[4]
-    //{
-    //    { -1.0f, -1.0f },   // v0 start
-    //    {  1.0f,  1.0f },   // v0 end
-    //
-    //    { -1.0f, 0.5f },    // v1 start 
-    //    {  1.0f, 0.5f },    // v1 end
-    //};
-    //
-    //Vector3 lineColors[4]
-    //{
-    //    V3_RIGHT,   // v0 start
-    //    V3_UP,      // v0 end
-    //    V3_ONE,     // v1 start
-    //    V3_FORWARD  // v1 end
-    //};
+    std::vector<Vector2> pointPositions(30000);
+    std::vector<Vector3> pointColours(30000);
+    for (int i = 0; i < pointPositions.size(); i++)
+    {
+        pointPositions[i].x = Random(-1.0f, 1.0f);
+        pointPositions[i].y = Random(-1.0f, 1.0f);
+
+        //pointColours[i] = colours[rand() % 3];
+        float r = Random(0.0f, 1.0f);
+        float g = Random(0.0f, 1.0f);
+        float b = Random(0.0f, 1.0f);
+        pointColours[i] = { r, g, b };
+    }
+
+    GLuint vaoPoints, pboPoints, cboPoints;
+    glGenVertexArrays(1, &vaoPoints);
+    glBindVertexArray(vaoPoints);
+
+    glGenBuffers(1, &pboPoints);
+    glBindBuffer(GL_ARRAY_BUFFER, pboPoints);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2) * pointPositions.size(), pointPositions.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
+    glEnableVertexAttribArray(5);
+
+    glGenBuffers(1, &cboPoints);
+    glBindBuffer(GL_ARRAY_BUFFER, cboPoints);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * pointColours.size(), pointColours.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(13, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
+    glEnableVertexAttribArray(13);
+
+    glBindVertexArray(GL_NONE);
 
     // GL_LINES: Vertices 0 and 1 are considered a line. Vertices 2 and 3 are considered a line. And so on.
     int lineVertexCount = SCREEN_WIDTH * 2;
@@ -241,7 +231,7 @@ int main(void)
     GLint u_color = glGetUniformLocation(shaderUniformColor, "u_color");
     GLint u_intensity = glGetUniformLocation(shaderUniformColor, "u_intensity");
 
-    int object = 3;
+    int object = 0;
     printf("Object %i\n", object + 1);
 
     Projection projection = PERSP;
@@ -345,18 +335,11 @@ int main(void)
             break;
 
         case 3:
-            shaderProgram = shaderLines;
+            shaderProgram = shaderPoints;
+            glPointSize(1.0f);
             glUseProgram(shaderProgram);
-            glUniform1f(glGetUniformLocation(shaderProgram, "u_a"), a);
-            glLineWidth(10.0f);
-            glBindVertexArray(vaoLines);
-            glBindBuffer(GL_ARRAY_BUFFER, pboLines);
-
-            glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * sizeof(Vector2), curr);
-            glDrawArrays(GL_LINE_LOOP, 0, 4);
-
-            glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * sizeof(Vector2), next);
-            glDrawArrays(GL_LINE_LOOP, 0, 4);
+            glBindVertexArray(vaoPoints);
+            glDrawArrays(GL_POINTS, 0, pointPositions.size());
             break;
 
         case 4:
@@ -368,7 +351,7 @@ int main(void)
             break;
 
         case 5:
-            shaderProgram = shaderNormals;
+            shaderProgram = shaderTcoords;
             glUseProgram(shaderProgram);
             world = MatrixIdentity();
             //world = RotateY(100.0f * time * DEG2RAD);
