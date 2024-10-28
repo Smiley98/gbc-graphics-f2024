@@ -93,9 +93,9 @@ std::vector<Vector2> GenerateLineShapes(std::vector<Vector2> verts, int sidesPer
         for (int j = 0; j < sidesPerShape * 2; j = j + 2)
         {
             lines[i + j] = verts[(i + j) / 2];
-            lines[i + j + 1] = verts[((i + j) / 2 + 1) % sidesPerShape];
+            lines[i + j + 1] = verts[(j / 2 + 1) % sidesPerShape + i / 2];
         }
-        i = i + sidesPerShape;
+        i = i + sidesPerShape * 2;
     }
     return lines;
 }
@@ -233,7 +233,12 @@ int main(void)
     std::vector<Vector2> linePositions = GenerateLineShapes(GenerateSquares(2));
     std::vector<Vector3> lineColors(linePositions.size());
     for (Vector3& c : lineColors)
-        c = V3_ONE;
+    {
+        float r = Random(0.0f, 1.0f);
+        float g = Random(0.0f, 1.0f);
+        float b = Random(0.0f, 1.0f);
+        c = { r, g, b };
+    }
 
     GLuint vaoLines, pboLines, cboLines;
     glGenVertexArrays(1, &vaoLines);
