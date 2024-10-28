@@ -139,10 +139,13 @@ int main(void)
 
     std::vector<Vector2> pointPositions(30000);
     std::vector<Vector3> pointColours(30000);
-    for (int i = 0; i < pointPositions.size(); i++)
+    for (int i = 1; i < pointPositions.size(); i++)
     {
-        pointPositions[i].x = Random(-1.0f, 1.0f);
-        pointPositions[i].y = Random(-1.0f, 1.0f);
+        Vector2 prev = pointPositions[i - 1];
+        Vector2 curr = positions[rand() % 3];
+        pointPositions[i] = (prev + curr) * 0.5f;
+        //pointPositions[i].x = Random(-1.0f, 1.0f);
+        //pointPositions[i].y = Random(-1.0f, 1.0f);
 
         //pointColours[i] = colours[rand() % 3];
         float r = Random(0.0f, 1.0f);
