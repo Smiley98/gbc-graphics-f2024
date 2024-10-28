@@ -37,11 +37,68 @@ enum Projection : int
     PERSP   // Perspective,  3D
 };
 
-struct Line
+std::vector<Vector2> GenerateLines(std::vector<Vector2> verts)
 {
-    Vector2 start;
-    Vector2 end;
-};
+    std::vector<Vector2> lines(verts.size() * 2);
+    for (int i = 0; i < lines.size(); i = i + 2)
+    {
+        lines[i] = verts[i / 2];
+        lines[i + 1] = verts[(i / 2 + 1) % verts.size()];
+    }
+    return lines;
+}
+
+std::vector<Vector2> GenerateMidpoints(std::vector<Vector2> verts)
+{
+    std::vector<Vector2> mids(verts.size());
+
+    for (int i = 0; i < mids.size(); i++)
+    {
+        mids[i] = (verts[i] + verts[(i + 1) % mids.size()]) / 2.0f;
+    }
+
+    return mids;
+}
+
+std::vector<Vector2> GenerateSquares(int subdivisions)
+{
+    // iteration 1
+    std::vector<Vector2> points
+    {
+        {-1.0f,  1.0f},
+        { 1.0f,  1.0f},
+        { 1.0f, -1.0f},
+        {-1.0f, -1.0f}
+    };
+
+    std::vector<Vector2> result = points;
+    for (int i = 0; i < subdivisions; i++)
+    {
+        points = GenerateMidpoints(points);
+        for (Vector2 v : points)
+        {
+            result.push_back(v);
+        }
+    }
+
+    return result;
+}
+
+std::vector<Vector2> GenerateLineShapes(std::vector<Vector2> verts, int sidesPerShape = 4)
+{
+    std::vector<Vector2> lines(verts.size() * 2);
+    int i = 0;
+    while (i < lines.size())
+    {
+        for (int j = 0; j < sidesPerShape * 2; j = j + 2)
+        {
+            lines[i + j] = verts[(i + j) / 2];
+            lines[i + j + 1] = verts[((i + j) / 2 + 1) % sidesPerShape];
+        }
+        i = i + sidesPerShape;
+    }
+    return lines;
+}
 
 int main(void)
 {
@@ -141,13 +198,14 @@ int main(void)
     std::vector<Vector3> pointColours(30000);
     for (int i = 1; i < pointPositions.size(); i++)
     {
+        //pointPositions[i].x = Random(-1.0f, 1.0f);
+        //pointPositions[i].y = Random(-1.0f, 1.0f);
+        //pointColours[i] = colours[rand() % 3];
+
         Vector2 prev = pointPositions[i - 1];
         Vector2 curr = positions[rand() % 3];
         pointPositions[i] = (prev + curr) * 0.5f;
-        //pointPositions[i].x = Random(-1.0f, 1.0f);
-        //pointPositions[i].y = Random(-1.0f, 1.0f);
 
-        //pointColours[i] = colours[rand() % 3];
         float r = Random(0.0f, 1.0f);
         float g = Random(0.0f, 1.0f);
         float b = Random(0.0f, 1.0f);
@@ -172,53 +230,10 @@ int main(void)
 
     glBindVertexArray(GL_NONE);
 
-    // GL_LINES: Vertices 0 and 1 are considered a line. Vertices 2 and 3 are considered a line. And so on.
-    //int lineVertexCount = SCREEN_WIDTH * 2;
-    //std::vector<Vector2> linePositions(lineVertexCount);
-    //std::vector<Vector3> lineColors(lineVertexCount);
-    //
-    //// Since lines are 2 vertices each, its easier to count up by 2 each iteration
-    //for (int i = 0; i < lineVertexCount; i += 2)
-    //{
-    //    float x = Remap(i, 0, lineVertexCount, -1.0f, 1.0f);
-    //    int A = i + 0;
-    //    int B = i + 1;
-    //    linePositions[A].x = x;
-    //    linePositions[B].x = x;
-    //    linePositions[A].y =  1.0f;
-    //    linePositions[B].y = -1.0f;
-    //    lineColors[A] = V3_RIGHT;
-    //    lineColors[B] = V3_UP;
-    //}
-    
-    // 1 square has ***8*** vertices worth of lines (2 vertices per line * 4 lines)
-    size_t lineVertexCount = 8;
-    std::vector<Vector2> linePositions(lineVertexCount);
-    std::vector<Vector3> lineColors(lineVertexCount);
-
-    // A (top)
-    linePositions[0] = { -1.0f,  1.0f };
-    linePositions[1] = {  1.0f,  1.0f };
-    lineColors[0] = V3_UP;
-    lineColors[1] = V3_UP;
-
-    // B (right)
-    linePositions[2] = linePositions[1];
-    linePositions[3] = { 1.0f, -1.0f };
-    lineColors[2] = V3_RIGHT;
-    lineColors[3] = V3_RIGHT;
-
-    // C (bottom)
-    linePositions[4] = linePositions[3];
-    linePositions[5] = { -1.0f, -1.0f };
-    lineColors[4] = V3_FORWARD;
-    lineColors[5] = V3_FORWARD;
-
-    // D (left)
-    linePositions[6] = linePositions[5];
-    linePositions[7] = linePositions[0];
-    lineColors[6] = V3_ONE;
-    lineColors[7] = V3_ONE;
+    std::vector<Vector2> linePositions = GenerateLineShapes(GenerateSquares(2));
+    std::vector<Vector3> lineColors(linePositions.size());
+    for (Vector3& c : lineColors)
+        c = V3_ONE;
 
     GLuint vaoLines, pboLines, cboLines;
     glGenVertexArrays(1, &vaoLines);
@@ -226,13 +241,13 @@ int main(void)
 
     glGenBuffers(1, &pboLines);
     glBindBuffer(GL_ARRAY_BUFFER, pboLines);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2) * lineVertexCount, linePositions.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2) * linePositions.size(), linePositions.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
     glEnableVertexAttribArray(0);
 
     glGenBuffers(1, &cboLines);
     glBindBuffer(GL_ARRAY_BUFFER, cboLines);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * lineVertexCount, lineColors.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * lineColors.size(), lineColors.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
     glEnableVertexAttribArray(1);
 
@@ -367,7 +382,7 @@ int main(void)
             glUseProgram(shaderProgram);
             glLineWidth(4.0f);
             glBindVertexArray(vaoLines);
-            glDrawArrays(GL_LINES, 0, lineVertexCount);
+            glDrawArrays(GL_LINES, 0, linePositions.size());
             break;
 
         case 5:
@@ -591,3 +606,60 @@ void Print(Matrix m)
     printf("%f %f %f %f\n", m.m2, m.m6, m.m10, m.m14);
     printf("%f %f %f %f\n\n", m.m3, m.m7, m.m11, m.m15);
 }
+
+// A (top)
+//linePositions[0] = { -1.0f,  1.0f };
+//linePositions[1] = {  1.0f,  1.0f };
+//lineColors[0] = V3_UP;
+//lineColors[1] = V3_UP;
+//
+//// B (right)
+//linePositions[2] = linePositions[1];
+//linePositions[3] = { 1.0f, -1.0f };
+//lineColors[2] = V3_RIGHT;
+//lineColors[3] = V3_RIGHT;
+//
+//// C (bottom)
+//linePositions[4] = linePositions[3];
+//linePositions[5] = { -1.0f, -1.0f };
+//lineColors[4] = V3_FORWARD;
+//lineColors[5] = V3_FORWARD;
+//
+//// D (left)
+//linePositions[6] = linePositions[5];
+//linePositions[7] = linePositions[0];
+//lineColors[6] = V3_ONE;
+//lineColors[7] = V3_ONE;
+
+// GL_LINES: Vertices 0 and 1 are considered a line. Vertices 2 and 3 are considered a line. And so on.
+//int lineVertexCount = SCREEN_WIDTH * 2;
+//std::vector<Vector2> linePositions(lineVertexCount);
+//std::vector<Vector3> lineColors(lineVertexCount);
+//
+//// Since lines are 2 vertices each, its easier to count up by 2 each iteration
+//for (int i = 0; i < lineVertexCount; i += 2)
+//{
+//    float x = Remap(i, 0, lineVertexCount, -1.0f, 1.0f);
+//    int A = i + 0;
+//    int B = i + 1;
+//    linePositions[A].x = x;
+//    linePositions[B].x = x;
+//    linePositions[A].y =  1.0f;
+//    linePositions[B].y = -1.0f;
+//    lineColors[A] = V3_RIGHT;
+//    lineColors[B] = V3_UP;
+//}
+
+// 1 square has ***8*** vertices worth of lines (2 vertices per line * 4 lines)
+//size_t lineVertexCount = 8;
+//std::vector<Vector2> linePositions(lineVertexCount);
+//std::vector<Vector3> lineColors(lineVertexCount);
+
+//std::vector<Vector2> testVerts{
+//    {-1.0f,  1.0f},
+//    { 1.0f,  1.0f},
+//    { 1.0f, -1.0f},
+//    {-1.0f, -1.0f}
+//};
+//
+//std::vector<Vector2> testLines = GenerateLines(testVerts);
