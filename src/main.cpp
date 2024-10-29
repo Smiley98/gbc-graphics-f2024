@@ -37,12 +37,6 @@ enum Projection : int
     PERSP   // Perspective,  3D
 };
 
-struct Line
-{
-    Vector2 start;
-    Vector2 end;
-};
-
 int main(void)
 {
     glfwSetErrorCallback(error_callback);
@@ -69,9 +63,6 @@ int main(void)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
-    //ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 460");
 
@@ -96,152 +87,7 @@ int main(void)
     GLuint shaderTcoords = CreateProgram(vs, fsTcoords);
     GLuint shaderNormals = CreateProgram(vs, fsNormals);
 
-    // Positions of our triangle's vertices (CCW winding-order)
-    Vector3 positions[] =
-    {
-        0.5f, -0.5f, 0.0f,  // vertex 1 (bottom-right)
-        0.0f, 0.5f, 0.0f,   // vertex 2 (top-middle)
-        -0.5f, -0.5f, 0.0f  // vertex 3 (bottom-left)
-    };
-
-    // Colours of our triangle's vertices (xyz = rgb)
-    Vector3 colours[] =
-    {
-        1.0f, 0.0f, 0.0f,   // vertex 1
-        0.0f, 1.0f, 0.0f,   // vertex 2
-        0.0f, 0.0f, 1.0f    // vertex 3
-    };
-
-    Vector2 curr[4]
-    {
-        { -1.0f,  1.0f },   // top-left
-        {  1.0f,  1.0f },   // top-right
-        {  1.0f, -1.0f },   // bot-right
-        { -1.0f, -1.0f }    // bot-left
-    };
-
-    Vector2 next[4]
-    {
-        (curr[0] + curr[1]) * 0.5f,
-        (curr[1] + curr[2]) * 0.5f,
-        (curr[2] + curr[3]) * 0.5f,
-        (curr[3] + curr[0]) * 0.5f
-    };
-
-    // vao = "Vertex Array Object". A vao is a collection of vbos.
-    // vbo = "Vertex Buffer Object". "Buffer" generally means "group of memory".
-    // A vbo is a piece of graphics memory VRAM.
-    GLuint vao, pbo, cbo;       // pbo = "position buffer object", "cbo = color buffer object"
-    glGenVertexArrays(1, &vao); // Allocate a vao handle
-    glBindVertexArray(vao);     // Bind = "associate all bound buffer object with the current array object"
-    
-    // Create position buffer:
-    glGenBuffers(1, &pbo);              // Allocate a vbo handle
-    glBindBuffer(GL_ARRAY_BUFFER, pbo); // Associate this buffer with the bound vertex array
-    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), positions, GL_STATIC_DRAW);  // Upload the buffer
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), 0);          // Describe the buffer
-    glEnableVertexAttribArray(0);
-
-    // Create color buffer:
-    glGenBuffers(1, &cbo);              // Allocate a vbo handle
-    glBindBuffer(GL_ARRAY_BUFFER, cbo); // Associate this buffer with the bound vertex array
-    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), colours, GL_STATIC_DRAW);    // Upload the buffer
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);      // Describe the buffer
-    glEnableVertexAttribArray(1);
-
-    GLuint vaoLines, pboLines, cboLines; // Note that cboLines is currently unused.
-    glGenVertexArrays(1, &vaoLines);
-    glBindVertexArray(vaoLines);
-
-    glGenBuffers(1, &pboLines);
-    glBindBuffer(GL_ARRAY_BUFFER, pboLines);
-    glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(Vector2), curr, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
-    glEnableVertexAttribArray(0);
-
-    glBindVertexArray(GL_NONE);
-
-    // Example of how to draw 2 separate lines each with unique vertex colours
-    //Vector2 linePositions[4]
-    //{
-    //    { -1.0f, -1.0f },   // v0 start
-    //    {  1.0f,  1.0f },   // v0 end
-    //
-    //    { -1.0f, 0.5f },    // v1 start 
-    //    {  1.0f, 0.5f },    // v1 end
-    //};
-    //
-    //Vector3 lineColors[4]
-    //{
-    //    V3_RIGHT,   // v0 start
-    //    V3_UP,      // v0 end
-    //    V3_ONE,     // v1 start
-    //    V3_FORWARD  // v1 end
-    //};
-
-    // GL_LINES: Vertices 0 and 1 are considered a line. Vertices 2 and 3 are considered a line. And so on.
-    int lineVertexCount = SCREEN_WIDTH * 2;
-    std::vector<Vector2> linePositions(lineVertexCount);
-    std::vector<Vector3> lineColors(lineVertexCount);
-
-    // Since lines are 2 vertices each, its easier to count up by 2 each iteration
-    for (int i = 0; i < lineVertexCount; i += 2)
-    {
-        float x = Remap(i, 0, lineVertexCount, -1.0f, 1.0f);
-        int A = i + 0;
-        int B = i + 1;
-        linePositions[A].x = x;
-        linePositions[B].x = x;
-        linePositions[A].y =  1.0f;
-        linePositions[B].y = -1.0f;
-        lineColors[A] = V3_RIGHT;
-        lineColors[B] = V3_UP;
-    }
-
-    GLuint vaoMoreLines, pboMoreLines, cboMoreLines;
-    glGenVertexArrays(1, &vaoMoreLines);
-    glBindVertexArray(vaoMoreLines);
-
-    glGenBuffers(1, &pboMoreLines);
-    glBindBuffer(GL_ARRAY_BUFFER, pboMoreLines);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2) * lineVertexCount, linePositions.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
-    glEnableVertexAttribArray(0);
-
-    glGenBuffers(1, &cboMoreLines);
-    glBindBuffer(GL_ARRAY_BUFFER, cboMoreLines);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * lineVertexCount, lineColors.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
-    glEnableVertexAttribArray(1);
-
-    //glGenBuffers(1, &pboMoreLines);
-    //glBindBuffer(GL_ARRAY_BUFFER, pboMoreLines);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(Line) * lines.size(), lines.data(), GL_STATIC_DRAW);
-    //glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Line), nullptr);
-    //glEnableVertexAttribArray(0);
-
-    //glGenBuffers(1, &cboMoreLines);
-    //glBindBuffer(GL_ARRAY_BUFFER, cboMoreLines);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * lineColors.size(), lineColors.data(), GL_STATIC_DRAW);
-    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
-    //glEnableVertexAttribArray(1);
-
-    glBindVertexArray(GL_NONE);
-
-    // In summary, we need 3 things to render:
-    // 1. Vertex data -- right now just positions.
-    // 2. Shader -- vs forwards input, fs colours.
-    // 3. Draw call -- draw 3 vertices interpreted as a triangle (GL_TRIANGLES)
-    // *** Everything is just data and behaviour ***
-    // *** vao & vbo describe data, shaders describe behaviour ***
-
-    // Fetch handles to uniform ("constant") variables.
-    // OpenGL handles are like addresses (&) in c++ -- they tell us the location of our data on the GPU.
-    // In the case of uniforms, we need to know their handle (location) before we can use them!
-    GLint u_color = glGetUniformLocation(shaderUniformColor, "u_color");
-    GLint u_intensity = glGetUniformLocation(shaderUniformColor, "u_intensity");
-
-    int object = 3;
+    int object = 0;
     printf("Object %i\n", object + 1);
 
     Projection projection = PERSP;
@@ -257,6 +103,7 @@ int main(void)
     // Whether we render the imgui demo widgets
     bool imguiDemo = false;
 
+    // TODO -- render objMesh instead of shapeMesh
     Mesh shapeMesh, objMesh;
     CreateMesh(&shapeMesh, PLANE);
     CreateMesh(&objMesh, "assets/meshes/plane.obj");
@@ -268,110 +115,54 @@ int main(void)
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
-        // Change object when space is pressed
+        float time = glfwGetTime();
+        Matrix world = MatrixIdentity();
+        Matrix view = LookAt(camPos, camPos - V3_FORWARD, V3_UP);
+        Matrix proj = projection == ORTHO ? Ortho(left, right, bottom, top, near, far) : Perspective(fov, SCREEN_ASPECT, near, far);
+        Matrix mvp = MatrixIdentity();
+
+        // Change object when Space is pressed
         if (IsKeyPressed(GLFW_KEY_SPACE))
         {
-            ++object %= 5;
+            ++object %= 3;
             printf("Object %i\n", object + 1);
         }
 
+        // Toggle imgui when I is pressed
         if (IsKeyPressed(GLFW_KEY_I))
             imguiDemo = !imguiDemo;
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        float time = glfwGetTime();
-
-        // Interpolation parameter (0 means fully A, 1 means fully B)
-        float a = cosf(time) * 0.5f + 0.5f;
-
-        // Interpolate scale
-        Vector3 sA = V3_ONE;
-        Vector3 sB = V3_ONE * 10.0f;
-        Vector3 sC = Lerp(sA, sB, a);
-
-        // Interpolate rotation (slerp = "spherical lerp" because we rotate in a circle) 
-        Quaternion rA = QuaternionIdentity();
-        Quaternion rB = FromEuler(0.0f, 0.0f, 90.0f * DEG2RAD);
-        Quaternion rC = Slerp(rA, rB, a);
-
-        // Interpolate translation
-        Vector3 tA = { -10.0f, 0.0f, 0.0f };
-        Vector3 tB = {  10.0f, 0.0f, 0.0f };
-        Vector3 tC = Lerp(tA, tB, a);
-
-        // Interpolate color
-        Vector3 cA = V3_UP;
-        Vector3 cB = V3_FORWARD;
-        Vector3 cC = Lerp(cA, cB, a);
-
-        Matrix s = Scale(sC);
-        Matrix r = ToMatrix(rC);
-        Matrix t = Translate(tC);
-
-        Matrix world = MatrixIdentity();
-        Matrix view = LookAt(camPos, camPos - V3_FORWARD, V3_UP);
-        Matrix proj = projection == ORTHO ?
-            Ortho(left, right, bottom, top, near, far) :
-            Perspective(fov, SCREEN_ASPECT, near, far);
-        Matrix mvp = MatrixIdentity();
         GLint u_mvp = GL_NONE;
-
         GLuint shaderProgram = GL_NONE;
-
         switch (object + 1)
         {
         case 1:
-            shaderProgram = shaderVertexBufferColor;
+            shaderProgram = shaderVertexPositionColor;
             glUseProgram(shaderProgram);
-            world = s * r * t;
+            world = MatrixIdentity();
             mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glBindVertexArray(vao);
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+            DrawMesh(shapeMesh);
             break;
 
         case 2:
-            shaderProgram = shaderVertexBufferColor;
+            shaderProgram = shaderTcoords;
             glUseProgram(shaderProgram);
-            world = s * r * t;
+            world = MatrixIdentity();
             mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glBindVertexArray(vao);
-            glDrawArrays(GL_LINE_LOOP, 0, 3);
+            DrawMesh(shapeMesh);
             break;
 
         case 3:
-            shaderProgram = shaderLines;
-            glUseProgram(shaderProgram);
-            glUniform1f(glGetUniformLocation(shaderProgram, "u_a"), a);
-            glLineWidth(10.0f);
-            glBindVertexArray(vaoLines);
-            glBindBuffer(GL_ARRAY_BUFFER, pboLines);
-
-            glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * sizeof(Vector2), curr);
-            glDrawArrays(GL_LINE_LOOP, 0, 4);
-
-            glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * sizeof(Vector2), next);
-            glDrawArrays(GL_LINE_LOOP, 0, 4);
-            break;
-
-        case 4:
-            shaderProgram = shaderLines;
-            glUseProgram(shaderProgram);
-            glLineWidth(1.0f);
-            glBindVertexArray(vaoMoreLines);
-            glDrawArrays(GL_LINES, 0, lineVertexCount);
-            break;
-
-        case 5:
             shaderProgram = shaderNormals;
             glUseProgram(shaderProgram);
             world = MatrixIdentity();
-            //world = RotateY(100.0f * time * DEG2RAD);
             mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
