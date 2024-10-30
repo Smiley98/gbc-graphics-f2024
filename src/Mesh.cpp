@@ -14,12 +14,16 @@ void CreateMesh(Mesh* mesh, const char* path)
 	int count = obj->index_count;
 	mesh->positions.resize(count);
 	mesh->normals.resize(count);
+	std::vector<fastObjIndex> indices(obj->index_count);
+	memcpy(indices.data(), obj->indices, indices.size() * sizeof(fastObjIndex));
 	
 	assert(obj->position_count > 1);
 	for (int i = 0; i < count; i++)
 	{
 		// Using the obj file's indices, populate the mesh->positions with the object's vertex positions
 		fastObjIndex idx = obj->indices[i];
+		Vector3 position = ((Vector3*)obj->positions)[idx.p];
+		mesh->positions[i] = position;
 	}
 	
 	assert(obj->normal_count > 1);
@@ -27,6 +31,8 @@ void CreateMesh(Mesh* mesh, const char* path)
 	{
 		// Using the obj file's indices, populate the mesh->normals with the object's vertex normals
 		fastObjIndex idx = obj->indices[i];
+		Vector3 normal = ((Vector3*)obj->normals)[idx.n];
+		mesh->normals[i] = normal;
 	}
 	
 	if (obj->texcoord_count > 1)
@@ -36,6 +42,8 @@ void CreateMesh(Mesh* mesh, const char* path)
 		{
 			// Using the obj file's indices, populate the mesh->tcoords with the object's vertex texture coordinates
 			fastObjIndex idx = obj->indices[i];
+			Vector2 tcoord = ((Vector2*)obj->texcoords)[idx.t];
+			mesh->tcoords[i] = tcoord;
 		}
 	}
 	else

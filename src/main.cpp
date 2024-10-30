@@ -37,69 +37,6 @@ enum Projection : int
     PERSP   // Perspective,  3D
 };
 
-std::vector<Vector2> GenerateLines(std::vector<Vector2> verts)
-{
-    std::vector<Vector2> lines(verts.size() * 2);
-    for (int i = 0; i < lines.size(); i = i + 2)
-    {
-        lines[i] = verts[i / 2];
-        lines[i + 1] = verts[(i / 2 + 1) % verts.size()];
-    }
-    return lines;
-}
-
-std::vector<Vector2> GenerateMidpoints(std::vector<Vector2> verts)
-{
-    std::vector<Vector2> mids(verts.size());
-
-    for (int i = 0; i < mids.size(); i++)
-    {
-        mids[i] = (verts[i] + verts[(i + 1) % mids.size()]) / 2.0f;
-    }
-
-    return mids;
-}
-
-std::vector<Vector2> GenerateSquares(int subdivisions)
-{
-    // iteration 1
-    std::vector<Vector2> points
-    {
-        {-1.0f,  1.0f},
-        { 1.0f,  1.0f},
-        { 1.0f, -1.0f},
-        {-1.0f, -1.0f}
-    };
-
-    std::vector<Vector2> result = points;
-    for (int i = 0; i < subdivisions; i++)
-    {
-        points = GenerateMidpoints(points);
-        for (Vector2 v : points)
-        {
-            result.push_back(v);
-        }
-    }
-
-    return result;
-}
-
-std::vector<Vector2> GenerateLineShapes(std::vector<Vector2> verts, int sidesPerShape = 4)
-{
-    std::vector<Vector2> lines(verts.size() * 2);
-    int i = 0;
-    while (i < lines.size())
-    {
-        for (int j = 0; j < sidesPerShape * 2; j = j + 2)
-        {
-            lines[i + j] = verts[(i + j) / 2];
-            lines[i + j + 1] = verts[(j / 2 + 1) % sidesPerShape + i / 2];
-        }
-        i = i + sidesPerShape * 2;
-    }
-    return lines;
-}
-
 int main(void)
 {
     glfwSetErrorCallback(error_callback);
@@ -126,9 +63,6 @@ int main(void)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
-    //ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 460");
 
@@ -155,123 +89,7 @@ int main(void)
     GLuint shaderTcoords = CreateProgram(vs, fsTcoords);
     GLuint shaderNormals = CreateProgram(vs, fsNormals);
 
-    // Positions of our triangle's vertices (CCW winding-order)
-    Vector3 positions[] =
-    {
-        0.5f, -0.5f, 0.0f,  // vertex 1 (bottom-right)
-        0.0f, 0.5f, 0.0f,   // vertex 2 (top-middle)
-        -0.5f, -0.5f, 0.0f  // vertex 3 (bottom-left)
-    };
-
-    // Colours of our triangle's vertices (xyz = rgb)
-    Vector3 colours[] =
-    {
-        1.0f, 0.0f, 0.0f,   // vertex 1
-        0.0f, 1.0f, 0.0f,   // vertex 2
-        0.0f, 0.0f, 1.0f    // vertex 3
-    };
-
-    // vao = "Vertex Array Object". A vao is a collection of vbos.
-    // vbo = "Vertex Buffer Object". "Buffer" generally means "group of memory".
-    // A vbo is a piece of graphics memory VRAM.
-    GLuint vao, pbo, cbo;       // pbo = "position buffer object", "cbo = color buffer object"
-    glGenVertexArrays(1, &vao); // Allocate a vao handle
-    glBindVertexArray(vao);     // Bind = "associate all bound buffer object with the current array object"
-    
-    // Create position buffer:
-    glGenBuffers(1, &pbo);              // Allocate a vbo handle
-    glBindBuffer(GL_ARRAY_BUFFER, pbo); // Associate this buffer with the bound vertex array
-    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), positions, GL_STATIC_DRAW);  // Upload the buffer
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), 0);          // Describe the buffer
-    glEnableVertexAttribArray(0);
-
-    // Create color buffer:
-    glGenBuffers(1, &cbo);              // Allocate a vbo handle
-    glBindBuffer(GL_ARRAY_BUFFER, cbo); // Associate this buffer with the bound vertex array
-    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), colours, GL_STATIC_DRAW);    // Upload the buffer
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);      // Describe the buffer
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(GL_NONE);
-
-    std::vector<Vector2> pointPositions(30000);
-    std::vector<Vector3> pointColours(30000);
-    for (int i = 1; i < pointPositions.size(); i++)
-    {
-        //pointPositions[i].x = Random(-1.0f, 1.0f);
-        //pointPositions[i].y = Random(-1.0f, 1.0f);
-        //pointColours[i] = colours[rand() % 3];
-
-        Vector2 prev = pointPositions[i - 1];
-        Vector2 curr = positions[rand() % 3];
-        pointPositions[i] = (prev + curr) * 0.5f;
-
-        float r = Random(0.0f, 1.0f);
-        float g = Random(0.0f, 1.0f);
-        float b = Random(0.0f, 1.0f);
-        pointColours[i] = { r, g, b };
-    }
-
-    GLuint vaoPoints, pboPoints, cboPoints;
-    glGenVertexArrays(1, &vaoPoints);
-    glBindVertexArray(vaoPoints);
-
-    glGenBuffers(1, &pboPoints);
-    glBindBuffer(GL_ARRAY_BUFFER, pboPoints);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2) * pointPositions.size(), pointPositions.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
-    glEnableVertexAttribArray(5);
-
-    glGenBuffers(1, &cboPoints);
-    glBindBuffer(GL_ARRAY_BUFFER, cboPoints);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * pointColours.size(), pointColours.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(13, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
-    glEnableVertexAttribArray(13);
-
-    glBindVertexArray(GL_NONE);
-
-    std::vector<Vector2> linePositions = GenerateLineShapes(GenerateSquares(2));
-    std::vector<Vector3> lineColors(linePositions.size());
-    for (Vector3& c : lineColors)
-    {
-        float r = Random(0.0f, 1.0f);
-        float g = Random(0.0f, 1.0f);
-        float b = Random(0.0f, 1.0f);
-        c = { r, g, b };
-    }
-
-    GLuint vaoLines, pboLines, cboLines;
-    glGenVertexArrays(1, &vaoLines);
-    glBindVertexArray(vaoLines);
-
-    glGenBuffers(1, &pboLines);
-    glBindBuffer(GL_ARRAY_BUFFER, pboLines);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2) * linePositions.size(), linePositions.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
-    glEnableVertexAttribArray(0);
-
-    glGenBuffers(1, &cboLines);
-    glBindBuffer(GL_ARRAY_BUFFER, cboLines);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * lineColors.size(), lineColors.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(GL_NONE);
-
-    // In summary, we need 3 things to render:
-    // 1. Vertex data -- right now just positions.
-    // 2. Shader -- vs forwards input, fs colours.
-    // 3. Draw call -- draw 3 vertices interpreted as a triangle (GL_TRIANGLES)
-    // *** Everything is just data and behaviour ***
-    // *** vao & vbo describe data, shaders describe behaviour ***
-
-    // Fetch handles to uniform ("constant") variables.
-    // OpenGL handles are like addresses (&) in c++ -- they tell us the location of our data on the GPU.
-    // In the case of uniforms, we need to know their handle (location) before we can use them!
-    GLint u_color = glGetUniformLocation(shaderUniformColor, "u_color");
-    GLint u_intensity = glGetUniformLocation(shaderUniformColor, "u_intensity");
-
-    int object = 3;
+    int object = 0;
     printf("Object %i\n", object + 1);
 
     Projection projection = PERSP;
@@ -289,7 +107,7 @@ int main(void)
 
     Mesh shapeMesh, objMesh;
     CreateMesh(&shapeMesh, PLANE);
-    CreateMesh(&objMesh, "assets/meshes/plane.obj");
+    CreateMesh(&objMesh, "assets/meshes/head.obj");
 
     // Render looks weird cause this isn't enabled, but its causing unexpected problems which I'll fix soon!
     glEnable(GL_DEPTH_TEST);
@@ -313,92 +131,52 @@ int main(void)
 
         float time = glfwGetTime();
 
-        // Interpolation parameter (0 means fully A, 1 means fully B)
-        float a = cosf(time) * 0.5f + 0.5f;
-
-        // Interpolate scale
-        Vector3 sA = V3_ONE;
-        Vector3 sB = V3_ONE * 10.0f;
-        Vector3 sC = Lerp(sA, sB, a);
-
-        // Interpolate rotation (slerp = "spherical lerp" because we rotate in a circle) 
-        Quaternion rA = QuaternionIdentity();
-        Quaternion rB = FromEuler(0.0f, 0.0f, 90.0f * DEG2RAD);
-        Quaternion rC = Slerp(rA, rB, a);
-
-        // Interpolate translation
-        Vector3 tA = { -10.0f, 0.0f, 0.0f };
-        Vector3 tB = {  10.0f, 0.0f, 0.0f };
-        Vector3 tC = Lerp(tA, tB, a);
-
-        // Interpolate color
-        Vector3 cA = V3_UP;
-        Vector3 cB = V3_FORWARD;
-        Vector3 cC = Lerp(cA, cB, a);
-
-        Matrix s = Scale(sC);
-        Matrix r = ToMatrix(rC);
-        Matrix t = Translate(tC);
-
         Matrix world = MatrixIdentity();
         Matrix view = LookAt(camPos, camPos - V3_FORWARD, V3_UP);
-        Matrix proj = projection == ORTHO ?
-            Ortho(left, right, bottom, top, near, far) :
-            Perspective(fov, SCREEN_ASPECT, near, far);
+        Matrix proj = projection == ORTHO ? Ortho(left, right, bottom, top, near, far) : Perspective(fov, SCREEN_ASPECT, near, far);
         Matrix mvp = MatrixIdentity();
         GLint u_mvp = GL_NONE;
-
         GLuint shaderProgram = GL_NONE;
 
         switch (object + 1)
         {
         case 1:
-            shaderProgram = shaderVertexBufferColor;
-            glUseProgram(shaderProgram);
-            world = s * r * t;
-            mvp = world * view * proj;
-            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glBindVertexArray(vao);
-            glDrawArrays(GL_TRIANGLES, 0, 3);
-            break;
-
-        case 2:
-            shaderProgram = shaderVertexBufferColor;
-            glUseProgram(shaderProgram);
-            world = s * r * t;
-            mvp = world * view * proj;
-            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glBindVertexArray(vao);
-            glDrawArrays(GL_LINE_LOOP, 0, 3);
-            break;
-
-        case 3:
-            shaderProgram = shaderPoints;
-            glPointSize(1.0f);
-            glUseProgram(shaderProgram);
-            glBindVertexArray(vaoPoints);
-            glDrawArrays(GL_POINTS, 0, pointPositions.size());
-            break;
-
-        case 4:
-            shaderProgram = shaderLines;
-            glUseProgram(shaderProgram);
-            glLineWidth(4.0f);
-            glBindVertexArray(vaoLines);
-            glDrawArrays(GL_LINES, 0, linePositions.size());
-            break;
-
-        case 5:
             shaderProgram = shaderTcoords;
             glUseProgram(shaderProgram);
-            world = MatrixIdentity();
-            //world = RotateY(100.0f * time * DEG2RAD);
             mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
             DrawMesh(shapeMesh);
+            break;
+
+        case 2:
+            shaderProgram = shaderNormals;
+            glUseProgram(shaderProgram);
+            mvp = world * view * proj;
+            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            DrawMesh(shapeMesh);
+            break;
+
+        case 3:
+            shaderProgram = shaderTcoords;
+            glUseProgram(shaderProgram);
+            mvp = world * view * proj;
+            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            DrawMesh(objMesh);
+            break;
+
+        case 4:
+            shaderProgram = shaderNormals;
+            glUseProgram(shaderProgram);
+            mvp = world * view * proj;
+            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            DrawMesh(objMesh);
+            break;
+
+        case 5:
             break;
         }
 
@@ -612,59 +390,169 @@ void Print(Matrix m)
     printf("%f %f %f %f\n\n", m.m3, m.m7, m.m11, m.m15);
 }
 
-// A (top)
-//linePositions[0] = { -1.0f,  1.0f };
-//linePositions[1] = {  1.0f,  1.0f };
-//lineColors[0] = V3_UP;
-//lineColors[1] = V3_UP;
-//
-//// B (right)
-//linePositions[2] = linePositions[1];
-//linePositions[3] = { 1.0f, -1.0f };
-//lineColors[2] = V3_RIGHT;
-//lineColors[3] = V3_RIGHT;
-//
-//// C (bottom)
-//linePositions[4] = linePositions[3];
-//linePositions[5] = { -1.0f, -1.0f };
-//lineColors[4] = V3_FORWARD;
-//lineColors[5] = V3_FORWARD;
-//
-//// D (left)
-//linePositions[6] = linePositions[5];
-//linePositions[7] = linePositions[0];
-//lineColors[6] = V3_ONE;
-//lineColors[7] = V3_ONE;
-
-// GL_LINES: Vertices 0 and 1 are considered a line. Vertices 2 and 3 are considered a line. And so on.
-//int lineVertexCount = SCREEN_WIDTH * 2;
-//std::vector<Vector2> linePositions(lineVertexCount);
-//std::vector<Vector3> lineColors(lineVertexCount);
-//
-//// Since lines are 2 vertices each, its easier to count up by 2 each iteration
-//for (int i = 0; i < lineVertexCount; i += 2)
+// Positions of our triangle's vertices (CCW winding-order)
+//Vector3 positions[] =
 //{
-//    float x = Remap(i, 0, lineVertexCount, -1.0f, 1.0f);
-//    int A = i + 0;
-//    int B = i + 1;
-//    linePositions[A].x = x;
-//    linePositions[B].x = x;
-//    linePositions[A].y =  1.0f;
-//    linePositions[B].y = -1.0f;
-//    lineColors[A] = V3_RIGHT;
-//    lineColors[B] = V3_UP;
-//}
-
-// 1 square has ***8*** vertices worth of lines (2 vertices per line * 4 lines)
-//size_t lineVertexCount = 8;
-//std::vector<Vector2> linePositions(lineVertexCount);
-//std::vector<Vector3> lineColors(lineVertexCount);
-
-//std::vector<Vector2> testVerts{
-//    {-1.0f,  1.0f},
-//    { 1.0f,  1.0f},
-//    { 1.0f, -1.0f},
-//    {-1.0f, -1.0f}
+//    0.5f, -0.5f, 0.0f,  // vertex 1 (bottom-right)
+//    0.0f, 0.5f, 0.0f,   // vertex 2 (top-middle)
+//    -0.5f, -0.5f, 0.0f  // vertex 3 (bottom-left)
 //};
 //
-//std::vector<Vector2> testLines = GenerateLines(testVerts);
+//// Colours of our triangle's vertices (xyz = rgb)
+//Vector3 colors[] =
+//{
+//    1.0f, 0.0f, 0.0f,   // vertex 1
+//    0.0f, 1.0f, 0.0f,   // vertex 2
+//    0.0f, 0.0f, 1.0f    // vertex 3
+//};
+
+// Hello triangle begin
+//    GLuint vaoTriangle, pboTriangle, cboTriangle;
+//    glGenVertexArrays(1, &vaoTriangle);
+//    glBindVertexArray(vaoTriangle);
+//    
+//    glGenBuffers(1, &pboTriangle);
+//    glBindBuffer(GL_ARRAY_BUFFER, pboTriangle);
+//    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), positions, GL_STATIC_DRAW);
+//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), 0);
+//    glEnableVertexAttribArray(0);
+//    
+//    glGenBuffers(1, &cboTriangle);
+//    glBindBuffer(GL_ARRAY_BUFFER, cboTriangle);
+//    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), colors, GL_STATIC_DRAW);
+//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
+//    glEnableVertexAttribArray(1);
+//    
+//    glBindVertexArray(GL_NONE);
+// Hello triangle end
+
+// Midterm solution begin
+//    std::vector<Vector2> pointPositions(30000);
+//    std::vector<Vector3> pointColours(30000);
+//    for (int i = 1; i < pointPositions.size(); i++)
+//    {
+//        //pointPositions[i].x = Random(-1.0f, 1.0f);
+//        //pointPositions[i].y = Random(-1.0f, 1.0f);
+//        //pointColours[i] = colours[rand() % 3];
+//
+//        Vector2 prev = pointPositions[i - 1];
+//        Vector2 curr = positions[rand() % 3];
+//        pointPositions[i] = (prev + curr) * 0.5f;
+//
+//        float r = Random(0.0f, 1.0f);
+//        float g = Random(0.0f, 1.0f);
+//        float b = Random(0.0f, 1.0f);
+//        pointColours[i] = { r, g, b };
+//    }
+//
+//    GLuint vaoPoints, pboPoints, cboPoints;
+//    glGenVertexArrays(1, &vaoPoints);
+//    glBindVertexArray(vaoPoints);
+//
+//    glGenBuffers(1, &pboPoints);
+//    glBindBuffer(GL_ARRAY_BUFFER, pboPoints);
+//    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2) * pointPositions.size(), pointPositions.data(), GL_STATIC_DRAW);
+//    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
+//    glEnableVertexAttribArray(5);
+//
+//    glGenBuffers(1, &cboPoints);
+//    glBindBuffer(GL_ARRAY_BUFFER, cboPoints);
+//    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * pointColours.size(), pointColours.data(), GL_STATIC_DRAW);
+//    glVertexAttribPointer(13, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
+//    glEnableVertexAttribArray(13);
+//
+//    glBindVertexArray(GL_NONE);
+// Midterm solution end
+
+// A2 solution begin
+//    std::vector<Vector2> linePositions = GenerateLineShapes(GenerateSquares(2));
+//    std::vector<Vector3> lineColors(linePositions.size());
+//    for (Vector3& c : lineColors)
+//    {
+//        float r = Random(0.0f, 1.0f);
+//        float g = Random(0.0f, 1.0f);
+//        float b = Random(0.0f, 1.0f);
+//        c = { r, g, b };
+//    }
+//
+//    GLuint vaoLines, pboLines, cboLines;
+//    glGenVertexArrays(1, &vaoLines);
+//    glBindVertexArray(vaoLines);
+//
+//    glGenBuffers(1, &pboLines);
+//    glBindBuffer(GL_ARRAY_BUFFER, pboLines);
+//    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2) * linePositions.size(), linePositions.data(), GL_STATIC_DRAW);
+//    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
+//    glEnableVertexAttribArray(0);
+//
+//    glGenBuffers(1, &cboLines);
+//    glBindBuffer(GL_ARRAY_BUFFER, cboLines);
+//    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * lineColors.size(), lineColors.data(), GL_STATIC_DRAW);
+//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
+//    glEnableVertexAttribArray(1);
+//
+//    glBindVertexArray(GL_NONE);
+// 
+// std::vector<Vector2> GenerateLines(std::vector<Vector2> verts)
+//{
+//    std::vector<Vector2> lines(verts.size() * 2);
+//    for (int i = 0; i < lines.size(); i = i + 2)
+//    {
+//        lines[i] = verts[i / 2];
+//        lines[i + 1] = verts[(i / 2 + 1) % verts.size()];
+//    }
+//    return lines;
+//}
+//
+//std::vector<Vector2> GenerateMidpoints(std::vector<Vector2> verts)
+//{
+//    std::vector<Vector2> mids(verts.size());
+//
+//    for (int i = 0; i < mids.size(); i++)
+//    {
+//        mids[i] = (verts[i] + verts[(i + 1) % mids.size()]) / 2.0f;
+//    }
+//
+//    return mids;
+//}
+//
+//std::vector<Vector2> GenerateSquares(int subdivisions)
+//{
+//    // iteration 1
+//    std::vector<Vector2> points
+//    {
+//        {-1.0f,  1.0f},
+//        { 1.0f,  1.0f},
+//        { 1.0f, -1.0f},
+//        {-1.0f, -1.0f}
+//    };
+//
+//    std::vector<Vector2> result = points;
+//    for (int i = 0; i < subdivisions; i++)
+//    {
+//        points = GenerateMidpoints(points);
+//        for (Vector2 v : points)
+//        {
+//            result.push_back(v);
+//        }
+//    }
+//
+//    return result;
+//}
+//
+//std::vector<Vector2> GenerateLineShapes(std::vector<Vector2> verts, int sidesPerShape = 4)
+//{
+//    std::vector<Vector2> lines(verts.size() * 2);
+//    int i = 0;
+//    while (i < lines.size())
+//    {
+//        for (int j = 0; j < sidesPerShape * 2; j = j + 2)
+//        {
+//            lines[i + j] = verts[(i + j) / 2];
+//            lines[i + j + 1] = verts[(j / 2 + 1) % sidesPerShape + i / 2];
+//        }
+//        i = i + sidesPerShape * 2;
+//    }
+//    return lines;
+//}
+// A2 solution end
