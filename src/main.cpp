@@ -2,6 +2,10 @@
 #include <GLFW/glfw3.h>
 #include "Mesh.h"
 
+// TODO -- Texture.h & Texture.cpp during lab, show result next lexture
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
@@ -79,6 +83,7 @@ int main(void)
     GLuint fsVertexColor = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/vertex_color.frag");
     GLuint fsTcoords = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/tcoord_color.frag");
     GLuint fsNormals = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/normal_color.frag");
+    GLuint fsTexture = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/texture_color.frag");
     
     // Shader programs:
     GLuint shaderUniformColor = CreateProgram(vs, fsUniformColor);
@@ -88,8 +93,25 @@ int main(void)
     GLuint shaderLines = CreateProgram(vsLines, fsLines);
     GLuint shaderTcoords = CreateProgram(vs, fsTcoords);
     GLuint shaderNormals = CreateProgram(vs, fsNormals);
+    GLuint shaderTexture = CreateProgram(vs, fsTexture);
 
-    int object = 0;
+    // Step 1: Load image from disk to CPU
+    int texHeadWidth = 0;
+    int texHeadHeight = 0;
+    int texHeadChannels = 0;
+    stbi_uc* pixels = stbi_load("./assets/textures/head.png", &texHeadWidth, &texHeadHeight, &texHeadChannels, 0);
+
+    // Step 2: Upload image from CPU to GPU
+    GLuint texHead = GL_NONE;
+    glGenTextures(1, &texHead);
+    glBindTexture(GL_TEXTURE_2D, texHead);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texHeadWidth, texHeadHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+    int object = 4;
     printf("Object %i\n", object + 1);
 
     Projection projection = PERSP;
@@ -136,6 +158,7 @@ int main(void)
         Matrix proj = projection == ORTHO ? Ortho(left, right, bottom, top, near, far) : Perspective(fov, SCREEN_ASPECT, near, far);
         Matrix mvp = MatrixIdentity();
         GLint u_mvp = GL_NONE;
+        GLint u_tex = GL_NONE;
         GLuint shaderProgram = GL_NONE;
 
         switch (object + 1)
@@ -177,6 +200,16 @@ int main(void)
             break;
 
         case 5:
+            // TODO -- Use stb_image to flip the texture vertically
+            shaderProgram = shaderTexture;
+            glUseProgram(shaderProgram);
+            mvp = world * view * proj;
+            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            u_tex = glGetUniformLocation(shaderProgram, "u_tex");
+            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            glUniform1i(u_tex, 0);
+            glActiveTexture(GL_TEXTURE0);
+            DrawMesh(objMesh);
             break;
         }
 
