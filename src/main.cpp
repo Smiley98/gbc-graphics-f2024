@@ -143,6 +143,8 @@ int main(void)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texHeadWidth, texHeadHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelsHead);
+    stbi_image_free(pixelsHead);
+    pixelsHead = nullptr;
 
     GLuint texGradient = GL_NONE;
     glGenTextures(1, &texGradient);
@@ -152,8 +154,8 @@ int main(void)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texGradientWidth, texGradientHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelsGradient);
-    free(pixelsHead);
-    pixelsHead = nullptr;
+    free(pixelsGradient);
+    pixelsGradient = nullptr;
 
     int object = 4;
     printf("Object %i\n", object + 1);
