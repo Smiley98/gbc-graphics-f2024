@@ -95,6 +95,10 @@ int main(void)
     GLuint shaderNormals = CreateProgram(vs, fsNormals);
     GLuint shaderTexture = CreateProgram(vs, fsTexture);
 
+    // Our obj file defines tcoords as 0 = bottom, 1 = top, but OpenGL defines as 0 = top 1 = bottom.
+    // Flipping our image vertically is the best way to solve this as it ensures a "one-stop" solution (rather than an in-shader solution).
+    stbi_set_flip_vertically_on_load(true);
+
     // Step 1: Load image from disk to CPU
     int texHeadWidth = 0;
     int texHeadHeight = 0;
