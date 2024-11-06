@@ -41,6 +41,14 @@ enum Projection : int
     PERSP   // Perspective,  3D
 };
 
+struct Pixel
+{
+    stbi_uc r = 255;
+    stbi_uc g = 255;
+    stbi_uc b = 255;
+    stbi_uc a = 255;
+};
+
 int main(void)
 {
     glfwSetErrorCallback(error_callback);
@@ -99,11 +107,32 @@ int main(void)
     // Flipping our image vertically is the best way to solve this as it ensures a "one-stop" solution (rather than an in-shader solution).
     stbi_set_flip_vertically_on_load(true);
 
+    // Note that generating an image ourselves is intuitive in OpenGL's space since it matches 2D array coordinates!
+    int texGradientWidth = 256;
+    int texGradientHeight = 256;
+    Pixel* pixelsGradient = (Pixel*)malloc(texGradientWidth * texGradientHeight * sizeof(Pixel));
+    for (int y = 0; y < texGradientHeight; y++)
+    {
+        for (int x = 0; x < texGradientWidth; x++)
+        {
+            float u = x / (float)texGradientWidth;
+            float v = y / (float)texGradientHeight;
+
+            Pixel pixel;
+            pixel.r = u * 255.0f;
+            pixel.g = v * 255.0f;
+            pixel.b = 255;
+            pixel.a = 255;
+
+            pixelsGradient[y * texGradientWidth + x] = pixel;
+        }
+    }
+
     // Step 1: Load image from disk to CPU
     int texHeadWidth = 0;
     int texHeadHeight = 0;
     int texHeadChannels = 0;
-    stbi_uc* pixels = stbi_load("./assets/textures/head.png", &texHeadWidth, &texHeadHeight, &texHeadChannels, 0);
+    stbi_uc* pixelsHead = stbi_load("./assets/textures/head.png", &texHeadWidth, &texHeadHeight, &texHeadChannels, 0);
 
     // Step 2: Upload image from CPU to GPU
     GLuint texHead = GL_NONE;
@@ -113,7 +142,18 @@ int main(void)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texHeadWidth, texHeadHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texHeadWidth, texHeadHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelsHead);
+
+    GLuint texGradient = GL_NONE;
+    glGenTextures(1, &texGradient);
+    glBindTexture(GL_TEXTURE_2D, texGradient);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texGradientWidth, texGradientHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelsGradient);
+    free(pixelsHead);
+    pixelsHead = nullptr;
 
     int object = 4;
     printf("Object %i\n", object + 1);
@@ -130,6 +170,7 @@ int main(void)
 
     // Whether we render the imgui demo widgets
     bool imguiDemo = false;
+    bool texToggle = false;
 
     Mesh shapeMesh, objMesh;
     CreateMesh(&shapeMesh, PLANE);
@@ -152,6 +193,9 @@ int main(void)
         if (IsKeyPressed(GLFW_KEY_I))
             imguiDemo = !imguiDemo;
 
+        if (IsKeyPressed(GLFW_KEY_T))
+            texToggle = !texToggle;
+
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -164,7 +208,8 @@ int main(void)
         GLint u_mvp = GL_NONE;
         GLint u_tex = GL_NONE;
         GLuint shaderProgram = GL_NONE;
-
+        GLuint texture = texToggle ? texGradient : texHead;
+;
         switch (object + 1)
         {
         case 1:
@@ -213,6 +258,7 @@ int main(void)
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
             glUniform1i(u_tex, 0);
             glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texture);
             DrawMesh(objMesh);
             break;
         }
