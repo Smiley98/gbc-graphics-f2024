@@ -92,6 +92,7 @@ int main(void)
     GLuint fsTcoords = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/tcoord_color.frag");
     GLuint fsNormals = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/normal_color.frag");
     GLuint fsTexture = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/texture_color.frag");
+    GLuint fsTextureMix = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/texture_color_mix.frag");
     
     // Shader programs:
     GLuint shaderUniformColor = CreateProgram(vs, fsUniformColor);
@@ -102,6 +103,7 @@ int main(void)
     GLuint shaderTcoords = CreateProgram(vs, fsTcoords);
     GLuint shaderNormals = CreateProgram(vs, fsNormals);
     GLuint shaderTexture = CreateProgram(vs, fsTexture);
+    GLuint shaderTextureMix = CreateProgram(vs, fsTextureMix);
 
     // Our obj file defines tcoords as 0 = bottom, 1 = top, but OpenGL defines as 0 = top 1 = bottom.
     // Flipping our image vertically is the best way to solve this as it ensures a "one-stop" solution (rather than an in-shader solution).
@@ -157,7 +159,7 @@ int main(void)
     free(pixelsGradient);
     pixelsGradient = nullptr;
 
-    int object = 4;
+    int object = 0;
     printf("Object %i\n", object + 1);
 
     Projection projection = PERSP;
@@ -175,7 +177,7 @@ int main(void)
     bool texToggle = false;
 
     Mesh shapeMesh, objMesh;
-    CreateMesh(&shapeMesh, PLANE);
+    CreateMesh(&shapeMesh, CUBE);
     CreateMesh(&objMesh, "assets/meshes/head.obj");
 
     // Render looks weird cause this isn't enabled, but its causing unexpected problems which I'll fix soon!
@@ -209,29 +211,63 @@ int main(void)
         Matrix mvp = MatrixIdentity();
         GLint u_mvp = GL_NONE;
         GLint u_tex = GL_NONE;
+        GLint u_textureSlots[2];
         GLuint shaderProgram = GL_NONE;
         GLuint texture = texToggle ? texGradient : texHead;
-;
+        GLint u_t = GL_NONE;
+
         switch (object + 1)
         {
+        // Left side: object with texture applied to it
+        // Right side: the coordinates our object uses to sample its texture
         case 1:
+            shaderProgram = shaderTexture;
+            glUseProgram(shaderProgram);
+            world = Translate(-2.5f, 0.0f, 0.0f);
+            mvp = world * view * proj;
+            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            u_tex = glGetUniformLocation(shaderProgram, "u_tex");
+            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            glUniform1i(u_tex, 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texture);
+            DrawMesh(objMesh);
+
             shaderProgram = shaderTcoords;
             glUseProgram(shaderProgram);
+            world = Translate(2.5f, 0.0f, 0.0f);
             mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            DrawMesh(shapeMesh);
+            DrawMesh(objMesh);
             break;
 
+        // Interpolating (lerping) between 2 textures:
         case 2:
-            shaderProgram = shaderNormals;
-            glUseProgram(shaderProgram);
+            shaderProgram = shaderTextureMix;
             mvp = world * view * proj;
+
+            glUseProgram(shaderProgram);
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            u_textureSlots[0] = glGetUniformLocation(shaderProgram, "u_tex0");
+            u_textureSlots[1] = glGetUniformLocation(shaderProgram, "u_tex1");
+            u_t = glGetUniformLocation(shaderProgram, "u_t");
+
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            DrawMesh(shapeMesh);
+            glUniform1f(u_t, cosf(time) * 0.5f + 0.5f);
+
+            glUniform1i(u_textureSlots[0], 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texGradient);
+
+            glUniform1i(u_textureSlots[1], 1);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texHead);
+
+            DrawMesh(objMesh);
             break;
 
+        // Texture coordinates of our object
         case 3:
             shaderProgram = shaderTcoords;
             glUseProgram(shaderProgram);
@@ -241,6 +277,7 @@ int main(void)
             DrawMesh(objMesh);
             break;
 
+        // Normals of our object
         case 4:
             shaderProgram = shaderNormals;
             glUseProgram(shaderProgram);
@@ -250,8 +287,8 @@ int main(void)
             DrawMesh(objMesh);
             break;
 
+        // Applies a texture to our object
         case 5:
-            // TODO -- Use stb_image to flip the texture vertically
             shaderProgram = shaderTexture;
             glUseProgram(shaderProgram);
             mvp = world * view * proj;
