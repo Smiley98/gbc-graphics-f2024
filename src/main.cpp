@@ -180,15 +180,27 @@ int main(void)
     CreateMesh(&shapeMesh, CUBE);
     CreateMesh(&objMesh, "assets/meshes/head.obj");
 
+    float objectPitch = 0.0f;
+    float objectYaw = 0.0f;
+    Vector3 objectPosition = V3_ZERO;
+    float objectSpeed = 10.0f;
+
     // Render looks weird cause this isn't enabled, but its causing unexpected problems which I'll fix soon!
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
 
+    float timePrev = glfwGetTime();
+    float timeCurr = glfwGetTime();
+    float dt = 0.0f;
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
+        float time = glfwGetTime();
+        timePrev = time;
+
         // Change object when space is pressed
-        if (IsKeyPressed(GLFW_KEY_SPACE))
+        if (IsKeyPressed(GLFW_KEY_TAB))
         {
             ++object %= 5;
             printf("Object %i\n", object + 1);
@@ -200,11 +212,47 @@ int main(void)
         if (IsKeyPressed(GLFW_KEY_T))
             texToggle = !texToggle;
 
+        Matrix objectRotation = ToMatrix(FromEuler(objectPitch * DEG2RAD, objectYaw * DEG2RAD, 0.0f));
+        Matrix objectTranslation = Translate(objectPosition);
+        Vector3 objectRight = { objectRotation.m0, objectRotation.m1, objectRotation.m2 };
+        Vector3 objectUp = { objectRotation.m4, objectRotation.m5, objectRotation.m6 };
+        Vector3 objectForward = { objectRotation.m8, objectRotation.m9, objectRotation.m10 };
+        float objectDelta = objectSpeed * dt;
+        Matrix objectMatrix = objectRotation * objectTranslation;
+
+        if (IsKeyDown(GLFW_KEY_W))
+        {
+            objectPosition += objectForward * objectDelta;
+;       }
+        if (IsKeyDown(GLFW_KEY_S))
+        {
+            objectPosition -= objectForward * objectDelta;
+        }
+        if (IsKeyDown(GLFW_KEY_A))
+        {
+            objectPosition -= objectRight * objectDelta;
+        }
+        if (IsKeyDown(GLFW_KEY_D))
+        {
+            objectPosition += objectRight * objectDelta;
+        }
+        if (IsKeyDown(GLFW_KEY_LEFT_SHIFT))
+        {
+            objectPosition -= objectUp * objectDelta;
+        }
+        if (IsKeyDown(GLFW_KEY_SPACE))
+        {
+            objectPosition += objectUp * objectDelta;
+        }
+
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        float time = glfwGetTime();
-
+        // view-matrix is the *inverse* of camera matrix
+        // ex: when we move the camera left, objects move right
+        // ex: when we move the camera up, object move down
+        // when we rotate the camera left, objects should move right
+        // when we rotate the camera up, object should move down
         Matrix world = MatrixIdentity();
         Matrix view = LookAt(camPos, camPos - V3_FORWARD, V3_UP);
         Matrix proj = projection == ORTHO ? Ortho(left, right, bottom, top, near, far) : Perspective(fov, SCREEN_ASPECT, near, far);
@@ -216,6 +264,9 @@ int main(void)
         GLuint texture = texToggle ? texGradient : texHead;
         GLint u_t = GL_NONE;
 
+        Matrix rotationX = RotateX(100.0f * time * DEG2RAD);
+        Matrix rotationY = RotateY(100.0f * time * DEG2RAD);
+
         switch (object + 1)
         {
         // Left side: object with texture applied to it
@@ -223,7 +274,9 @@ int main(void)
         case 1:
             shaderProgram = shaderTexture;
             glUseProgram(shaderProgram);
-            world = Translate(-2.5f, 0.0f, 0.0f);
+            //view = view * rotationY;
+            //view = rotationY * view;
+            world = objectMatrix;//rotationY * Translate(-2.5f, 0.0f, 0.0f);
             mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             u_tex = glGetUniformLocation(shaderProgram, "u_tex");
@@ -235,7 +288,7 @@ int main(void)
 
             shaderProgram = shaderTcoords;
             glUseProgram(shaderProgram);
-            world = Translate(2.5f, 0.0f, 0.0f);
+            world = rotationX * Translate(2.5f, 0.0f, 0.0f);
             mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
@@ -331,6 +384,8 @@ int main(void)
         
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        timeCurr = glfwGetTime();
+        dt = timeCurr - timePrev;
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
