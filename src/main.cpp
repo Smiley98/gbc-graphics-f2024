@@ -175,6 +175,7 @@ int main(void)
     // Whether we render the imgui demo widgets
     bool imguiDemo = false;
     bool texToggle = false;
+    bool camToggle = false;
 
     Mesh shapeMesh, objMesh;
     CreateMesh(&shapeMesh, CUBE);
@@ -193,11 +194,16 @@ int main(void)
     float timeCurr = glfwGetTime();
     float dt = 0.0f;
 
+    double pmx = 0.0, pmy = 0.0, mx = 0.0, my = 0.0;
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         float time = glfwGetTime();
         timePrev = time;
+
+        pmx = mx; pmy = my;
+        glfwGetCursorPos(window, &mx, &my);
+        Vector2 mouseDelta = { mx - pmx, my - pmy };
 
         // Change object when space is pressed
         if (IsKeyPressed(GLFW_KEY_TAB))
@@ -212,14 +218,36 @@ int main(void)
         if (IsKeyPressed(GLFW_KEY_T))
             texToggle = !texToggle;
 
+        if (IsKeyPressed(GLFW_KEY_C))
+        {
+            camToggle = !camToggle;
+            if (camToggle)
+            {
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            }
+            else
+            {
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            }
+        }
+
         Matrix objectRotation = ToMatrix(FromEuler(objectPitch * DEG2RAD, objectYaw * DEG2RAD, 0.0f));
         Matrix objectTranslation = Translate(objectPosition);
+
         Vector3 objectRight = { objectRotation.m0, objectRotation.m1, objectRotation.m2 };
         Vector3 objectUp = { objectRotation.m4, objectRotation.m5, objectRotation.m6 };
         Vector3 objectForward = { objectRotation.m8, objectRotation.m9, objectRotation.m10 };
-        float objectDelta = objectSpeed * dt;
         Matrix objectMatrix = objectRotation * objectTranslation;
 
+        float objectDelta = objectSpeed * dt;
+        float mouseScale = 1.0f;
+        if (!camToggle)
+        {
+            objectDelta = 0.0f;
+            mouseScale = 0.0f;
+        }
+        objectPitch += mouseDelta.y * mouseScale;
+        objectYaw += mouseDelta.x * mouseScale;
         if (IsKeyDown(GLFW_KEY_W))
         {
             objectPosition += objectForward * objectDelta;
