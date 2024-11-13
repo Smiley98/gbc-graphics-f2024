@@ -159,6 +159,31 @@ int main(void)
     free(pixelsGradient);
     pixelsGradient = nullptr;
 
+    const char* skyboxPath[6] =
+    {
+        "./assets/textures/sky_x+.png",
+        "./assets/textures/sky_x-.png",
+        "./assets/textures/sky_y+.png",
+        "./assets/textures/sky_y-.png",
+        "./assets/textures/sky_z+.png",
+        "./assets/textures/sky_z-.png"
+    };
+    GLuint texSkybox = GL_NONE;
+    glGenTextures(1, &texSkybox);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texSkybox);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    for (int i = 0; i < 6; i++)
+    {
+        int w, h, c;
+        stbi_uc* pixels = stbi_load(skyboxPath[i], &w, &h, &c, 0);
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        stbi_image_free(pixels);
+    }
+
     int object = 0;
     printf("Object %i\n", object + 1);
 
@@ -362,10 +387,11 @@ int main(void)
         case 4:
             shaderProgram = shaderNormals;
             glUseProgram(shaderProgram);
+            world = RotateY(100.0f * time * DEG2RAD) * RotateX(100.0f * time * DEG2RAD);
             mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            DrawMesh(objMesh);
+            DrawMesh(shapeMesh);
             break;
 
         // Applies a texture to our object

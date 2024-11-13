@@ -8,6 +8,8 @@
 
 void Upload(Mesh* mesh);
 
+void GenCube(Mesh* mesh, float width, float height, float length);
+
 void CreateMesh(Mesh* mesh, const char* path)
 {
 	fastObjMesh* obj = fast_obj_read(path);
@@ -66,12 +68,13 @@ void CreateMesh(Mesh* mesh, ShapeType shape)
 		par = par_shapes_create_plane(1, 1);
 		break;
 
+		// No longer supported because par platonic solids work differently than par parametrics
 	case CUBE:
-		par = par_shapes_create_cube();
+		//par = par_shapes_create_cube();
 		break;
 
 	case SPHERE:
-		par = par_shapes_create_subdivided_sphere(1);
+		par = par_shapes_create_parametric_sphere(8, 8);
 		break;
 
 	default:
@@ -79,27 +82,28 @@ void CreateMesh(Mesh* mesh, ShapeType shape)
 		break;
 	}
 	
-	par_shapes_compute_normals(par);
-
-	// 2. Convert par_shapes_mesh to our Mesh representation
-	int count = par->ntriangles * 3;	// 3 points per triangle
-	mesh->count = count;
-	mesh->indices.resize(count);
-	memcpy(mesh->indices.data(), par->triangles, count * sizeof(uint16_t));
-	mesh->positions.resize(par->npoints);
-	memcpy(mesh->positions.data(), par->points, par->npoints * sizeof(Vector3));
-	mesh->normals.resize(par->npoints);
-	memcpy(mesh->normals.data(), par->normals, par->npoints * sizeof(Vector3));
-	if (par->tcoords != nullptr)
+	if (par != nullptr)
 	{
+		par_shapes_compute_normals(par);
+
+		// 2. Convert par_shapes_mesh to our Mesh representation
+		int count = par->ntriangles * 3;	// 3 points per triangle
+		mesh->count = count;
+		mesh->indices.resize(count);
+		memcpy(mesh->indices.data(), par->triangles, count * sizeof(uint16_t));
+		mesh->positions.resize(par->npoints);
+		memcpy(mesh->positions.data(), par->points, par->npoints * sizeof(Vector3));
+		mesh->normals.resize(par->npoints);
+		memcpy(mesh->normals.data(), par->normals, par->npoints * sizeof(Vector3));
 		mesh->tcoords.resize(par->npoints);
 		memcpy(mesh->tcoords.data(), par->tcoords, par->npoints * sizeof(Vector2));
+		par_shapes_free_mesh(par);
 	}
 	else
 	{
-		printf("Warning: Mesh generated without tcoords!\n");
+		assert(shape == CUBE);
+		GenCube(mesh, 1.0f, 1.0f, 1.0f);
 	}
-	par_shapes_free_mesh(par);
 
 	// 3. Upload Mesh to GPU
 	Upload(mesh);
@@ -170,4 +174,111 @@ void Upload(Mesh* mesh)
 	mesh->nbo = nbo;
 	mesh->tbo = tbo;
 	mesh->ebo = ebo;
+}
+
+void GenCube(Mesh* mesh, float width, float height, float length)
+{
+	float positions[] = {
+		-width / 2, -height / 2, length / 2,
+		width / 2, -height / 2, length / 2,
+		width / 2, height / 2, length / 2,
+		-width / 2, height / 2, length / 2,
+		-width / 2, -height / 2, -length / 2,
+		-width / 2, height / 2, -length / 2,
+		width / 2, height / 2, -length / 2,
+		width / 2, -height / 2, -length / 2,
+		-width / 2, height / 2, -length / 2,
+		-width / 2, height / 2, length / 2,
+		width / 2, height / 2, length / 2,
+		width / 2, height / 2, -length / 2,
+		-width / 2, -height / 2, -length / 2,
+		width / 2, -height / 2, -length / 2,
+		width / 2, -height / 2, length / 2,
+		-width / 2, -height / 2, length / 2,
+		width / 2, -height / 2, -length / 2,
+		width / 2, height / 2, -length / 2,
+		width / 2, height / 2, length / 2,
+		width / 2, -height / 2, length / 2,
+		-width / 2, -height / 2, -length / 2,
+		-width / 2, -height / 2, length / 2,
+		-width / 2, height / 2, length / 2,
+		-width / 2, height / 2, -length / 2
+	};
+
+	float tcoords[] = {
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+		1.0f, 1.0f,
+		0.0f, 1.0f,
+		1.0f, 0.0f,
+		1.0f, 1.0f,
+		0.0f, 1.0f,
+		0.0f, 0.0f,
+		0.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+		1.0f, 1.0f,
+		1.0f, 1.0f,
+		0.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+		1.0f, 0.0f,
+		1.0f, 1.0f,
+		0.0f, 1.0f,
+		0.0f, 0.0f,
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+		1.0f, 1.0f,
+		0.0f, 1.0f
+	};
+
+	float normals[] = {
+		0.0f, 0.0f, 1.0f,
+		0.0f, 0.0f, 1.0f,
+		0.0f, 0.0f, 1.0f,
+		0.0f, 0.0f, 1.0f,
+		0.0f, 0.0f,-1.0f,
+		0.0f, 0.0f,-1.0f,
+		0.0f, 0.0f,-1.0f,
+		0.0f, 0.0f,-1.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f,-1.0f, 0.0f,
+		0.0f,-1.0f, 0.0f,
+		0.0f,-1.0f, 0.0f,
+		0.0f,-1.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,
+		-1.0f, 0.0f, 0.0f,
+		-1.0f, 0.0f, 0.0f,
+		-1.0f, 0.0f, 0.0f,
+		-1.0f, 0.0f, 0.0f
+	};
+
+	mesh->positions.resize(24);
+	mesh->normals.resize(24);
+	mesh->tcoords.resize(24);
+	memcpy(mesh->positions.data(), positions, 24 * sizeof(Vector3));
+	memcpy(mesh->normals.data(), normals, 24 * sizeof(Vector3));
+	memcpy(mesh->tcoords.data(), tcoords, 24 * sizeof(Vector2));
+
+	int k = 0;
+	mesh->indices.resize(36);
+	for (int i = 0; i < 36; i += 6)
+	{
+		mesh->indices[i] = 4 * k;
+		mesh->indices[i + 1] = 4 * k + 1;
+		mesh->indices[i + 2] = 4 * k + 2;
+		mesh->indices[i + 3] = 4 * k;
+		mesh->indices[i + 4] = 4 * k + 2;
+		mesh->indices[i + 5] = 4 * k + 3;
+
+		k++;
+	}
+
+	mesh->count = 36;
 }
