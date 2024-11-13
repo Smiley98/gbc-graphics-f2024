@@ -80,12 +80,14 @@ int main(void)
 
     // Vertex shaders:
     GLuint vs = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/default.vert");
+    GLuint vsSkybox = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/skybox.vert");
     GLuint vsPoints = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/points.vert");
     GLuint vsLines = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/lines.vert");
     GLuint vsVertexPositionColor = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/vertex_color.vert");
     GLuint vsColorBufferColor = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/buffer_color.vert");
     
     // Fragment shaders:
+    GLuint fsSkybox = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/skybox.frag");
     GLuint fsLines = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/lines.frag");
     GLuint fsUniformColor = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/uniform_color.frag");
     GLuint fsVertexColor = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/vertex_color.frag");
@@ -104,6 +106,7 @@ int main(void)
     GLuint shaderNormals = CreateProgram(vs, fsNormals);
     GLuint shaderTexture = CreateProgram(vs, fsTexture);
     GLuint shaderTextureMix = CreateProgram(vs, fsTextureMix);
+    GLuint shaderSkybox = CreateProgram(vsSkybox, fsSkybox);
 
     // Our obj file defines tcoords as 0 = bottom, 1 = top, but OpenGL defines as 0 = top 1 = bottom.
     // Flipping our image vertically is the best way to solve this as it ensures a "one-stop" solution (rather than an in-shader solution).
@@ -176,6 +179,7 @@ int main(void)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    stbi_set_flip_vertically_on_load(false);
     for (int i = 0; i < 6; i++)
     {
         int w, h, c;
@@ -183,6 +187,7 @@ int main(void)
         glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
         stbi_image_free(pixels);
     }
+    stbi_set_flip_vertically_on_load(true);
 
     int object = 0;
     printf("Object %i\n", object + 1);
@@ -194,7 +199,7 @@ int main(void)
     float right = 1.0f;
     float top = 1.0f;
     float bottom = -1.0f;
-    float near = 1.0f; // 1.0 for testing purposes. Usually 0.1f or 0.01f
+    float near = 0.001f; // 1.0 for testing purposes. Usually 0.1f or 0.01f
     float far = 10.0f;
 
     // Whether we render the imgui demo widgets
@@ -202,9 +207,10 @@ int main(void)
     bool texToggle = false;
     bool camToggle = false;
 
-    Mesh shapeMesh, objMesh;
-    CreateMesh(&shapeMesh, CUBE);
+    Mesh shapeMesh, objMesh, cubeMesh;
+    CreateMesh(&shapeMesh, SPHERE);
     CreateMesh(&objMesh, "assets/meshes/head.obj");
+    CreateMesh(&cubeMesh, CUBE);
 
     float objectPitch = 0.0f;
     float objectYaw = 0.0f;
@@ -310,9 +316,9 @@ int main(void)
         Matrix view = LookAt(camPos, camPos - V3_FORWARD, V3_UP);
         Matrix proj = projection == ORTHO ? Ortho(left, right, bottom, top, near, far) : Perspective(fov, SCREEN_ASPECT, near, far);
         Matrix mvp = MatrixIdentity();
-        GLint u_mvp = GL_NONE;
-        GLint u_tex = GL_NONE;
-        GLint u_textureSlots[2];
+        GLint u_mvp = -2;
+        GLint u_tex = -2;
+        GLint u_textureSlots[2]{ -2, -2 };
         GLuint shaderProgram = GL_NONE;
         GLuint texture = texToggle ? texGradient : texHead;
         GLint u_t = GL_NONE;
@@ -320,6 +326,8 @@ int main(void)
         Matrix rotationX = RotateX(100.0f * time * DEG2RAD);
         Matrix rotationY = RotateY(100.0f * time * DEG2RAD);
 
+        // Extra practice: render the skybox here and it should be applied to cases 1-5!
+        // You may need to tweak a few things like matrix values and depth state in order for everything to work correctly.
         switch (object + 1)
         {
         // Left side: object with texture applied to it
@@ -383,15 +391,20 @@ int main(void)
             DrawMesh(objMesh);
             break;
 
-        // Normals of our object
+        // Skybox (cubemap, 1 texture for each side of a cube)!
         case 4:
-            shaderProgram = shaderNormals;
+            shaderProgram = shaderSkybox;
             glUseProgram(shaderProgram);
-            world = RotateY(100.0f * time * DEG2RAD) * RotateX(100.0f * time * DEG2RAD);
+            // Bonus: Test your fps camera within this skybox!
+            // You need to remove the translation column from the view matrix as seen below:
+            //view.m12 = view.m13 = view.m14 = 0.0f;
+            // (Making the view matrix equivalent to rotations means no translation, but at the cost of motion sickness xD)
+            view = rotationX * rotationY;
             mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            DrawMesh(shapeMesh);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, texSkybox);
+            DrawMesh(cubeMesh);
             break;
 
         // Applies a texture to our object
