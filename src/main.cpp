@@ -95,6 +95,7 @@ int main(void)
     GLuint fsNormals = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/normal_color.frag");
     GLuint fsTexture = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/texture_color.frag");
     GLuint fsTextureMix = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/texture_color_mix.frag");
+    GLuint fsPhong = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/phong.frag");
     
     // Shader programs:
     GLuint shaderUniformColor = CreateProgram(vs, fsUniformColor);
@@ -107,6 +108,12 @@ int main(void)
     GLuint shaderTexture = CreateProgram(vs, fsTexture);
     GLuint shaderTextureMix = CreateProgram(vs, fsTextureMix);
     GLuint shaderSkybox = CreateProgram(vsSkybox, fsSkybox);
+    GLuint shaderPhong = CreateProgram(vs, fsPhong);
+
+    // See Diffuse 2.png for context
+    //Vector2 N = Rotate(Vector2{ 0.0f, 1.0f }, 30.0f * DEG2RAD);
+    //Vector2 L = Normalize(Vector2{ 6.0f, 5.0f });
+    //float t = Dot(N, L);
 
     // Our obj file defines tcoords as 0 = bottom, 1 = top, but OpenGL defines as 0 = top 1 = bottom.
     // Flipping our image vertically is the best way to solve this as it ensures a "one-stop" solution (rather than an in-shader solution).
@@ -207,10 +214,10 @@ int main(void)
     bool texToggle = false;
     bool camToggle = false;
 
-    Mesh shapeMesh, objMesh, cubeMesh;
-    CreateMesh(&shapeMesh, SPHERE);
-    CreateMesh(&objMesh, "assets/meshes/head.obj");
+    Mesh headMesh, cubeMesh, sphereMesh;
+    CreateMesh(&headMesh, "assets/meshes/head.obj");
     CreateMesh(&cubeMesh, CUBE);
+    CreateMesh(&sphereMesh, SPHERE);
 
     float objectPitch = 0.0f;
     float objectYaw = 0.0f;
@@ -270,6 +277,9 @@ int main(void)
         Vector3 objectForward = { objectRotation.m8, objectRotation.m9, objectRotation.m10 };
         Matrix objectMatrix = objectRotation * objectTranslation;
 
+        Vector3 lightPosition = { 5.0f, 5.0f, 5.0f };
+        Vector3 lightColor = { 1.0f, 0.5f, 0.0f };
+
         float objectDelta = objectSpeed * dt;
         float mouseScale = 1.0f;
         if (!camToggle)
@@ -316,12 +326,16 @@ int main(void)
         Matrix view = LookAt(camPos, camPos - V3_FORWARD, V3_UP);
         Matrix proj = projection == ORTHO ? Ortho(left, right, bottom, top, near, far) : Perspective(fov, SCREEN_ASPECT, near, far);
         Matrix mvp = MatrixIdentity();
+        GLint u_world = -2;
         GLint u_mvp = -2;
         GLint u_tex = -2;
         GLint u_textureSlots[2]{ -2, -2 };
         GLuint shaderProgram = GL_NONE;
         GLuint texture = texToggle ? texGradient : texHead;
         GLint u_t = GL_NONE;
+
+        GLint u_lightPosition = -2;
+        GLint u_lightColor = -2;
 
         Matrix rotationX = RotateX(100.0f * time * DEG2RAD);
         Matrix rotationY = RotateY(100.0f * time * DEG2RAD);
@@ -345,7 +359,7 @@ int main(void)
             glUniform1i(u_tex, 0);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture);
-            DrawMesh(objMesh);
+            DrawMesh(headMesh);
 
             shaderProgram = shaderTcoords;
             glUseProgram(shaderProgram);
@@ -353,7 +367,7 @@ int main(void)
             mvp = world * view * proj;
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            DrawMesh(objMesh);
+            DrawMesh(headMesh);
             break;
 
         // Interpolating (lerping) between 2 textures:
@@ -378,17 +392,27 @@ int main(void)
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, texHead);
 
-            DrawMesh(objMesh);
+            DrawMesh(headMesh);
             break;
 
-        // Texture coordinates of our object
+        // Phong
+        // (Lab TODO: convert from object-space to world-space positions & normals, apply normal matrix to handle non-uniform scaling)
+        // (Lab TODO: control lighting parameters [color, position, maybe add attenuation])
         case 3:
-            shaderProgram = shaderTcoords;
+            shaderProgram = shaderPhong;
             glUseProgram(shaderProgram);
+            world = objectMatrix;
             mvp = world * view * proj;
+
+            u_world = glGetUniformLocation(shaderProgram, "u_world");
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            u_lightPosition = glGetUniformLocation(shaderProgram, "u_lightPosition");
+            u_lightColor = glGetUniformLocation(shaderProgram, "u_lightColor");
+            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            DrawMesh(objMesh);
+            glUniform3fv(u_lightPosition, 1, &lightPosition.x);
+            glUniform3fv(u_lightColor, 1, &lightColor.x);
+            DrawMesh(sphereMesh);
             break;
 
         // Skybox (cubemap, 1 texture for each side of a cube)!
@@ -418,7 +442,7 @@ int main(void)
             glUniform1i(u_tex, 0);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture);
-            DrawMesh(objMesh);
+            DrawMesh(headMesh);
             break;
         }
 
