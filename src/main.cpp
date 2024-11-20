@@ -279,6 +279,7 @@ int main(void)
 
         Vector3 lightPosition = { 5.0f, 5.0f, 5.0f };
         Vector3 lightColor = { 1.0f, 0.5f, 0.0f };
+        float lightRadius = 5.0f;
 
         float objectDelta = objectSpeed * dt;
         float mouseScale = 1.0f;
@@ -326,6 +327,7 @@ int main(void)
         Matrix proj = projection == ORTHO ? Ortho(left, right, bottom, top, near, far) : Perspective(fov, SCREEN_ASPECT, near, far);
         Matrix mvp = MatrixIdentity();
 
+        GLuint u_color = -2;
         GLint u_normal = -2;
         GLint u_world = -2;
         GLint u_mvp = -2;
@@ -399,13 +401,14 @@ int main(void)
         case 3:
             shaderProgram = shaderPhong;
             glUseProgram(shaderProgram);
-            world = Scale(3.0f, 1.0f, 1.0f) * objectMatrix;
+            world = objectMatrix;
             mvp = world * view * proj;
 
             // Converting from mat4 to mat3 removes the translation
             // Uniform scale (ie scale(2.0, 2.0, 2.0) preserves the direction of matrix forward, right and up
             // Non-uniform scale (ie scale(3.0, 1.0, 1.0) changes this direction, hence we need to "re-normalize"
             // Our matrix by taking the transpose of its inverse (http://www.lighthouse3d.com/tutorials/glsl-tutorial/the-normal-matrix/)
+            //world = Scale(3.0f, 1.0f, 1.0f) * objectMatrix;
             //normal = world;
             normal = Transpose(Invert(world));
 
@@ -420,6 +423,19 @@ int main(void)
             glUniform3fv(u_lightPosition, 1, &lightPosition.x);
             glUniform3fv(u_lightColor, 1, &lightColor.x);
             DrawMesh(sphereMesh);
+
+            shaderProgram = shaderUniformColor;
+            glUseProgram(shaderProgram);
+            world = Scale(V3_ONE * lightRadius) * Translate(lightPosition);
+            mvp = world * view * proj;
+            //u_world = glGetUniformLocation(shaderProgram, "u_world");
+            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            u_color = glGetUniformLocation(shaderProgram, "u_color");
+            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            glUniform3fv(u_color, 1, &lightColor.x);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            DrawMesh(sphereMesh);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             break;
 
         // Skybox (cubemap, 1 texture for each side of a cube)!

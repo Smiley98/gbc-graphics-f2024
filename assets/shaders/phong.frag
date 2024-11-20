@@ -11,12 +11,13 @@ uniform vec3 u_lightColor;
 void main()
 {
     // Extra practice: add ambient and specular components based on LearnOpenGL Basic Lighting article!!! 
-
     vec3 N = normalize(normal);
     vec3 L = normalize(u_lightPosition - position);
     float dotNL = max(dot(N, L), 0.0);
 
-    //vec3 diffuse = u_lightColor * dotNL;
-    vec3 diffuse = N;
+    // Visualize normals to understand their relation to lighting
+    //vec3 diffuse = N;
+    
+    vec3 diffuse = u_lightColor * dotNL;
     FragColor = vec4(diffuse, 1.0);
 }
