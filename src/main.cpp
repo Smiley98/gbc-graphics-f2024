@@ -196,7 +196,7 @@ int main(void)
     }
     stbi_set_flip_vertically_on_load(true);
 
-    int object = 0;
+    int object = 2;
     printf("Object %i\n", object + 1);
 
     Projection projection = PERSP;
@@ -339,6 +339,7 @@ int main(void)
 
         GLint u_lightPosition = -2;
         GLint u_lightColor = -2;
+        GLint u_lightRadius = -2;
 
         // Extra practice: render the skybox here and it should be applied to cases 1-5!
         // You may need to tweak a few things like matrix values and depth state in order for everything to work correctly.
@@ -417,11 +418,13 @@ int main(void)
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             u_lightPosition = glGetUniformLocation(shaderProgram, "u_lightPosition");
             u_lightColor = glGetUniformLocation(shaderProgram, "u_lightColor");
+            u_lightRadius = glGetUniformLocation(shaderProgram, "u_lightRadius");
             glUniformMatrix3fv(u_normal, 1, GL_FALSE, ToFloat9(normal).v);
             glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
             glUniform3fv(u_lightPosition, 1, &lightPosition.x);
             glUniform3fv(u_lightColor, 1, &lightColor.x);
+            glUniform1f(u_lightRadius, lightRadius);
             DrawMesh(sphereMesh);
 
             // Visualize light as wireframe
@@ -479,6 +482,7 @@ int main(void)
         {
             ImGui::SliderFloat3("Camera Position", &camPos.x, -10.0f, 10.0f);
             ImGui::SliderFloat3("Light Position", &lightPosition.x, -10.0f, 10.0f);
+            ImGui::SliderFloat("Light Radius", &lightRadius, 0.25f, 5.0f);
 
             ImGui::RadioButton("Orthographic", (int*)&projection, 0); ImGui::SameLine();
             ImGui::RadioButton("Perspective", (int*)&projection, 1);
