@@ -224,6 +224,10 @@ int main(void)
     Vector3 objectPosition = V3_ZERO;
     float objectSpeed = 10.0f;
 
+    Vector3 lightPosition = { 5.0f, 5.0f, 0.0f };
+    Vector3 lightColor = { 1.0f, 0.5f, 0.0f };
+    float lightRadius = 1.0f;
+
     // Render looks weird cause this isn't enabled, but its causing unexpected problems which I'll fix soon!
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
@@ -276,10 +280,6 @@ int main(void)
         Vector3 objectUp = { objectRotation.m4, objectRotation.m5, objectRotation.m6 };
         Vector3 objectForward = { objectRotation.m8, objectRotation.m9, objectRotation.m10 };
         Matrix objectMatrix = objectRotation * objectTranslation;
-
-        Vector3 lightPosition = { 5.0f, 5.0f, 5.0f };
-        Vector3 lightColor = { 1.0f, 0.5f, 0.0f };
-        float lightRadius = 5.0f;
 
         float objectDelta = objectSpeed * dt;
         float mouseScale = 1.0f;
@@ -424,6 +424,7 @@ int main(void)
             glUniform3fv(u_lightColor, 1, &lightColor.x);
             DrawMesh(sphereMesh);
 
+            // Visualize light as wireframe
             shaderProgram = shaderUniformColor;
             glUseProgram(shaderProgram);
             world = Scale(V3_ONE * lightRadius) * Translate(lightPosition);
@@ -477,6 +478,7 @@ int main(void)
         else
         {
             ImGui::SliderFloat3("Camera Position", &camPos.x, -10.0f, 10.0f);
+            ImGui::SliderFloat3("Light Position", &lightPosition.x, -10.0f, 10.0f);
 
             ImGui::RadioButton("Orthographic", (int*)&projection, 0); ImGui::SameLine();
             ImGui::RadioButton("Perspective", (int*)&projection, 1);
