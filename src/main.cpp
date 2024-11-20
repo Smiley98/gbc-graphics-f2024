@@ -317,15 +317,16 @@ int main(void)
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // view-matrix is the *inverse* of camera matrix
-        // ex: when we move the camera left, objects move right
-        // ex: when we move the camera up, object move down
-        // when we rotate the camera left, objects should move right
-        // when we rotate the camera up, object should move down
+        Matrix rotationX = RotateX(100.0f * time * DEG2RAD);
+        Matrix rotationY = RotateY(100.0f * time * DEG2RAD);
+
+        Matrix normal = MatrixIdentity();
         Matrix world = MatrixIdentity();
         Matrix view = LookAt(camPos, camPos - V3_FORWARD, V3_UP);
         Matrix proj = projection == ORTHO ? Ortho(left, right, bottom, top, near, far) : Perspective(fov, SCREEN_ASPECT, near, far);
         Matrix mvp = MatrixIdentity();
+
+        GLint u_normal = -2;
         GLint u_world = -2;
         GLint u_mvp = -2;
         GLint u_tex = -2;
@@ -336,9 +337,6 @@ int main(void)
 
         GLint u_lightPosition = -2;
         GLint u_lightColor = -2;
-
-        Matrix rotationX = RotateX(100.0f * time * DEG2RAD);
-        Matrix rotationY = RotateY(100.0f * time * DEG2RAD);
 
         // Extra practice: render the skybox here and it should be applied to cases 1-5!
         // You may need to tweak a few things like matrix values and depth state in order for everything to work correctly.
@@ -401,13 +399,22 @@ int main(void)
         case 3:
             shaderProgram = shaderPhong;
             glUseProgram(shaderProgram);
-            world = objectMatrix;
+            world = Scale(3.0f, 1.0f, 1.0f) * objectMatrix;
             mvp = world * view * proj;
 
+            // Converting from mat4 to mat3 removes the translation
+            // Uniform scale (ie scale(2.0, 2.0, 2.0) preserves the direction of matrix forward, right and up
+            // Non-uniform scale (ie scale(3.0, 1.0, 1.0) changes this direction, hence we need to "re-normalize"
+            // Our matrix by taking the transpose of its inverse (http://www.lighthouse3d.com/tutorials/glsl-tutorial/the-normal-matrix/)
+            //normal = world;
+            normal = Transpose(Invert(world));
+
+            u_normal = glGetUniformLocation(shaderProgram, "u_normal");
             u_world = glGetUniformLocation(shaderProgram, "u_world");
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             u_lightPosition = glGetUniformLocation(shaderProgram, "u_lightPosition");
             u_lightColor = glGetUniformLocation(shaderProgram, "u_lightColor");
+            glUniformMatrix3fv(u_normal, 1, GL_FALSE, ToFloat9(normal).v);
             glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
             glUniform3fv(u_lightPosition, 1, &lightPosition.x);

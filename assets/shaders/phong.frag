@@ -16,6 +16,7 @@ void main()
     vec3 L = normalize(u_lightPosition - position);
     float dotNL = max(dot(N, L), 0.0);
 
-    vec3 diffuse = u_lightColor * dotNL;
+    //vec3 diffuse = u_lightColor * dotNL;
+    vec3 diffuse = N;
     FragColor = vec4(diffuse, 1.0);
 }
