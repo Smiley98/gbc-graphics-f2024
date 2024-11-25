@@ -337,6 +337,7 @@ int main(void)
         GLuint texture = texToggle ? texGradient : texHead;
         GLint u_t = GL_NONE;
 
+        GLint u_cameraPosition = -2;
         GLint u_lightPosition = -2;
         GLint u_lightColor = -2;
         GLint u_lightRadius = -2;
@@ -416,12 +417,14 @@ int main(void)
             u_normal = glGetUniformLocation(shaderProgram, "u_normal");
             u_world = glGetUniformLocation(shaderProgram, "u_world");
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            u_cameraPosition = glGetUniformLocation(shaderProgram, "u_cameraPosition");
             u_lightPosition = glGetUniformLocation(shaderProgram, "u_lightPosition");
             u_lightColor = glGetUniformLocation(shaderProgram, "u_lightColor");
             u_lightRadius = glGetUniformLocation(shaderProgram, "u_lightRadius");
             glUniformMatrix3fv(u_normal, 1, GL_FALSE, ToFloat9(normal).v);
             glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            glUniform3fv(u_lightPosition, 1, &camPos.x);
             glUniform3fv(u_lightPosition, 1, &lightPosition.x);
             glUniform3fv(u_lightColor, 1, &lightColor.x);
             glUniform1f(u_lightRadius, lightRadius);
