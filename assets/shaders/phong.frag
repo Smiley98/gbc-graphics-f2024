@@ -5,8 +5,10 @@ in vec3 normal;
 
 out vec4 FragColor;
 
+// TODO for yourself: figure out how to send more than 1 light worth of information to this shader
 uniform vec3 u_cameraPosition;
 uniform vec3 u_lightPosition;
+uniform vec3 u_lightDirection;
 uniform vec3 u_lightColor;
 uniform float u_lightRadius;
 
@@ -34,18 +36,38 @@ vec3 phong(vec3 position, vec3 normal, vec3 camera, vec3 light, vec3 color, floa
     return lighting;
 }
 
+// Phong but attenuated
+vec3 point_light(vec3 position, vec3 normal, vec3 camera, vec3 light, vec3 color, float ambientFactor, float diffuseFactor, float specularPower, float radius)
+{
+    vec3 lighting = phong(position, normal, u_cameraPosition, u_lightPosition, u_lightColor, u_ambientFactor, u_diffuseFactor, u_specularPower);
 
+    float dist = length(light - position);
+    float attenuation = clamp(radius / dist, 0.0, 1.0);
+    lighting *= attenuation;
+
+    return lighting;
+}
+
+// Phong but based on direction only
+vec3 direction_light(vec3 direction, vec3 normal, vec3 camera, vec3 color, float ambientFactor, float diffuseFactor, float specularPower)
+{
+    vec3 lighting = phong(vec3(0.0), normal, u_cameraPosition, -direction, u_lightColor, u_ambientFactor, u_diffuseFactor, u_specularPower);
+    return lighting;
+}
+
+// Phong but attenuated & within field of view (fov)
+vec3 spot_light(vec3 position, vec3 direction, vec3 normal, vec3 camera, vec3 light, vec3 color, float ambientFactor, float diffuseFactor, float specularPower, float radius, float fov)
+{
+    // TODO -- figure this out for yourself
+    vec3 lighting = vec3(0.0);
+    return lighting;
+}
 
 void main()
 {
-    // Whether its a point light, directional light, or spotlight, the underlying illumination model (phong) is the same!
-    vec3 lighting = phong(position, normal, u_cameraPosition, u_lightPosition, u_lightColor, u_ambientFactor, u_diffuseFactor, u_specularPower);
-
-    // Convert to point light by applying attenuation:    
-    float dist = length(u_lightPosition - position);
-    float attenuation = clamp(u_lightRadius / dist, 0.0, 1.0);
-    lighting *= attenuation;
-
+    //vec3 lighting = point_light(position, normal, u_cameraPosition, u_lightPosition, u_lightColor, u_ambientFactor, u_diffuseFactor, u_specularPower, u_lightRadius);
+    vec3 lighting = direction_light(u_lightDirection, normal, u_cameraPosition, u_lightColor, u_ambientFactor, u_diffuseFactor, u_specularPower);
+    // TODO -- test spot light and multiple lights
     FragColor = vec4(lighting, 1.0);
 }
 

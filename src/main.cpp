@@ -227,6 +227,7 @@ int main(void)
     Vector3 lightPosition = { 5.0f, 5.0f, 0.0f };
     Vector3 lightColor = { 1.0f, 0.5f, 0.0f };
     float lightRadius = 1.0f;
+    float lightAngle = 90.0f * DEG2RAD;
 
     float ambientFactor = 0.25f;
     float diffuseFactor = 1.0f;
@@ -343,6 +344,7 @@ int main(void)
 
         GLint u_cameraPosition = -2;
         GLint u_lightPosition = -2;
+        GLint u_lightDirection = -2;
         GLint u_lightColor = -2;
         GLint u_lightRadius = -2;
         
@@ -428,6 +430,7 @@ int main(void)
 
             u_cameraPosition = glGetUniformLocation(shaderProgram, "u_cameraPosition");
             u_lightPosition = glGetUniformLocation(shaderProgram, "u_lightPosition");
+            u_lightDirection = glGetUniformLocation(shaderProgram, "u_lightDirection");
             u_lightColor = glGetUniformLocation(shaderProgram, "u_lightColor");
             u_lightRadius = glGetUniformLocation(shaderProgram, "u_lightRadius");
 
@@ -439,8 +442,11 @@ int main(void)
             glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
 
+            Vector3 lightDirection = Direction(lightAngle);
+
             glUniform3fv(u_cameraPosition, 1, &camPos.x);
             glUniform3fv(u_lightPosition, 1, &lightPosition.x);
+            glUniform3fv(u_lightDirection, 1, &lightDirection.x);
             glUniform3fv(u_lightColor, 1, &lightColor.x);
             glUniform1f(u_lightRadius, lightRadius);
 
@@ -506,6 +512,7 @@ int main(void)
             ImGui::SliderFloat3("Camera Position", &camPos.x, -10.0f, 10.0f);
             ImGui::SliderFloat3("Light Position", &lightPosition.x, -10.0f, 10.0f);
             ImGui::SliderFloat("Light Radius", &lightRadius, 0.25f, 5.0f);
+            ImGui::SliderAngle("Light Angle", &lightAngle);
 
             ImGui::SliderFloat("Ambient", &ambientFactor, 0.0f, 1.0f);
             ImGui::SliderFloat("Diffuse", &diffuseFactor, 0.0f, 1.0f);
