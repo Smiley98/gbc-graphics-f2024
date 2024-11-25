@@ -228,6 +228,10 @@ int main(void)
     Vector3 lightColor = { 1.0f, 0.5f, 0.0f };
     float lightRadius = 1.0f;
 
+    float ambientFactor = 0.25f;
+    float diffuseFactor = 1.0f;
+    float specularPower = 64.0f;
+
     // Render looks weird cause this isn't enabled, but its causing unexpected problems which I'll fix soon!
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
@@ -341,6 +345,10 @@ int main(void)
         GLint u_lightPosition = -2;
         GLint u_lightColor = -2;
         GLint u_lightRadius = -2;
+        
+        GLint u_ambientFactor = -2;
+        GLint u_diffuseFactor = -2;
+        GLint u_SpecularPower = -2;
 
         // Extra practice: render the skybox here and it should be applied to cases 1-5!
         // You may need to tweak a few things like matrix values and depth state in order for everything to work correctly.
@@ -417,17 +425,29 @@ int main(void)
             u_normal = glGetUniformLocation(shaderProgram, "u_normal");
             u_world = glGetUniformLocation(shaderProgram, "u_world");
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+
             u_cameraPosition = glGetUniformLocation(shaderProgram, "u_cameraPosition");
             u_lightPosition = glGetUniformLocation(shaderProgram, "u_lightPosition");
             u_lightColor = glGetUniformLocation(shaderProgram, "u_lightColor");
             u_lightRadius = glGetUniformLocation(shaderProgram, "u_lightRadius");
+
+            u_ambientFactor = glGetUniformLocation(shaderProgram, "u_ambientFactor");
+            u_diffuseFactor = glGetUniformLocation(shaderProgram, "u_diffuseFactor");
+            u_SpecularPower = glGetUniformLocation(shaderProgram, "u_specularPower");
+
             glUniformMatrix3fv(u_normal, 1, GL_FALSE, ToFloat9(normal).v);
             glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glUniform3fv(u_lightPosition, 1, &camPos.x);
+
+            glUniform3fv(u_cameraPosition, 1, &camPos.x);
             glUniform3fv(u_lightPosition, 1, &lightPosition.x);
             glUniform3fv(u_lightColor, 1, &lightColor.x);
             glUniform1f(u_lightRadius, lightRadius);
+
+            glUniform1f(u_ambientFactor, ambientFactor);
+            glUniform1f(u_diffuseFactor, diffuseFactor);
+            glUniform1f(u_SpecularPower, specularPower);
+
             DrawMesh(sphereMesh);
 
             // Visualize light as wireframe
@@ -486,6 +506,10 @@ int main(void)
             ImGui::SliderFloat3("Camera Position", &camPos.x, -10.0f, 10.0f);
             ImGui::SliderFloat3("Light Position", &lightPosition.x, -10.0f, 10.0f);
             ImGui::SliderFloat("Light Radius", &lightRadius, 0.25f, 5.0f);
+
+            ImGui::SliderFloat("Ambient", &ambientFactor, 0.0f, 1.0f);
+            ImGui::SliderFloat("Diffuse", &diffuseFactor, 0.0f, 1.0f);
+            ImGui::SliderFloat("Specular", &specularPower, 8.0f, 256.0f);
 
             ImGui::RadioButton("Orthographic", (int*)&projection, 0); ImGui::SameLine();
             ImGui::RadioButton("Perspective", (int*)&projection, 1);
