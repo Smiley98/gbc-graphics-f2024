@@ -49,6 +49,31 @@ struct Pixel
     stbi_uc a = 255;
 };
 
+GLuint CreateSkybox(const char* skyboxPath[6])
+{
+    GLuint texSkybox = GL_NONE;
+    glGenTextures(1, &texSkybox);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texSkybox);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    stbi_set_flip_vertically_on_load(false);
+    for (int i = 0; i < 6; i++)
+    {
+        int w, h, c;
+        stbi_uc* pixels = stbi_load(skyboxPath[i], &w, &h, &c, 0);
+        GLint format = c == 3 ? GL_RGB : GL_RGBA;
+        assert(c >= 3);
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, w, h, 0, format, GL_UNSIGNED_BYTE, pixels);
+        stbi_image_free(pixels);
+    }
+    stbi_set_flip_vertically_on_load(true);
+
+    return texSkybox;
+}
+
 int main(void)
 {
     glfwSetErrorCallback(error_callback);
@@ -96,6 +121,8 @@ int main(void)
     GLuint fsTexture = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/texture_color.frag");
     GLuint fsTextureMix = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/texture_color_mix.frag");
     GLuint fsPhong = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/phong.frag");
+    GLuint fsReflect = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/reflect.frag");
+    GLuint fsRefract = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/refract.frag");
     
     // Shader programs:
     GLuint shaderUniformColor = CreateProgram(vs, fsUniformColor);
@@ -109,6 +136,8 @@ int main(void)
     GLuint shaderTextureMix = CreateProgram(vs, fsTextureMix);
     GLuint shaderSkybox = CreateProgram(vsSkybox, fsSkybox);
     GLuint shaderPhong = CreateProgram(vs, fsPhong);
+    GLuint shaderReflect = CreateProgram(vs, fsReflect);
+    GLuint shaderRefract = CreateProgram(vs, fsRefract);
 
     // See Diffuse 2.png for context
     //Vector2 N = Rotate(Vector2{ 0.0f, 1.0f }, 30.0f * DEG2RAD);
@@ -171,32 +200,16 @@ int main(void)
 
     const char* skyboxPath[6] =
     {
-        "./assets/textures/sky_x+.png",
-        "./assets/textures/sky_x-.png",
-        "./assets/textures/sky_y+.png",
-        "./assets/textures/sky_y-.png",
-        "./assets/textures/sky_z+.png",
-        "./assets/textures/sky_z-.png"
+        "./assets/textures/arctic_x+.jpg",
+        "./assets/textures/arctic_x-.jpg",
+        "./assets/textures/arctic_y+.jpg",
+        "./assets/textures/arctic_y-.jpg",
+        "./assets/textures/arctic_z+.jpg",
+        "./assets/textures/arctic_z-.jpg"
     };
-    GLuint texSkybox = GL_NONE;
-    glGenTextures(1, &texSkybox);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, texSkybox);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    stbi_set_flip_vertically_on_load(false);
-    for (int i = 0; i < 6; i++)
-    {
-        int w, h, c;
-        stbi_uc* pixels = stbi_load(skyboxPath[i], &w, &h, &c, 0);
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-        stbi_image_free(pixels);
-    }
-    stbi_set_flip_vertically_on_load(true);
+    GLuint texSkybox = CreateSkybox(skyboxPath);
 
-    int object = 2;
+    int object = 3;
     printf("Object %i\n", object + 1);
 
     Projection projection = PERSP;
@@ -471,20 +484,41 @@ int main(void)
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             break;
 
-        // Skybox (cubemap, 1 texture for each side of a cube)!
+        // Skybox + environment mapping!
         case 4:
             shaderProgram = shaderSkybox;
             glUseProgram(shaderProgram);
-            // Bonus: Test your fps camera within this skybox!
-            // You need to remove the translation column from the view matrix as seen below:
-            //view.m12 = view.m13 = view.m14 = 0.0f;
-            // (Making the view matrix equivalent to rotations means no translation, but at the cost of motion sickness xD)
-            view = rotationX * rotationY;
-            mvp = world * view * proj;
+            
+            Matrix viewSky = view;
+            viewSky.m12 = viewSky.m13 = viewSky.m14 = 0.0f;
+            mvp = world * viewSky * proj;
+            
             u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
             glBindTexture(GL_TEXTURE_CUBE_MAP, texSkybox);
+            glDepthMask(GL_FALSE);
             DrawMesh(cubeMesh);
+            glDepthMask(GL_TRUE);
+
+            shaderProgram = shaderReflect;
+            glUseProgram(shaderProgram);
+
+            world = objectMatrix;
+            mvp = world * view * proj;
+            normal = Transpose(Invert(world));
+
+            u_normal = glGetUniformLocation(shaderProgram, "u_normal");
+            u_world = glGetUniformLocation(shaderProgram, "u_world");
+            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            u_cameraPosition = glGetUniformLocation(shaderProgram, "u_cameraPosition");
+
+            glUniformMatrix3fv(u_normal, 1, GL_FALSE, ToFloat9(normal).v);
+            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
+            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            glUniform3fv(u_cameraPosition, 1, &camPos.x);
+
+            DrawMesh(cubeMesh);
+
             break;
 
         // Applies a texture to our object

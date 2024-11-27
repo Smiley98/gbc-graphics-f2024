@@ -3,6 +3,8 @@
 in vec3 position;
 
 uniform samplerCube u_cubemap;
+uniform vec3 u_cameraPosition;
+uniform float u_ratio;
 
 out vec4 FragColor;
 
