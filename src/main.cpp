@@ -485,7 +485,12 @@ int main(void)
             break;
 
         // Skybox + environment mapping!
+        // Extra practice 1 - Add an imgui slider float from 1.0 to 3.0 that changes the refractive index (u_ratio)
+        // Extra practice 2 - Add FPS camera to see all 6 faces of the skybox!
+        // Extra practice 3 - Add FPS controls to objects & make a key to cycle between controlling reflected vs refracted object
         case 4:
+
+        // Skybox begin
             shaderProgram = shaderSkybox;
             glUseProgram(shaderProgram);
             
@@ -499,11 +504,13 @@ int main(void)
             glDepthMask(GL_FALSE);
             DrawMesh(cubeMesh);
             glDepthMask(GL_TRUE);
+        // Skybox end
 
+        // Reflect begin
             shaderProgram = shaderReflect;
             glUseProgram(shaderProgram);
 
-            world = objectMatrix;
+            world = Translate(-2.0f, 0.0f, 0.0f);
             mvp = world * view * proj;
             normal = Transpose(Invert(world));
 
@@ -518,7 +525,29 @@ int main(void)
             glUniform3fv(u_cameraPosition, 1, &camPos.x);
 
             DrawMesh(cubeMesh);
+        // Reflect end
 
+        // Refract begin
+            shaderProgram = shaderRefract;
+            glUseProgram(shaderProgram);
+
+            world = Translate(2.0f, 0.0f, 0.0f);
+            mvp = world * view * proj;
+            normal = Transpose(Invert(world));
+
+            u_normal = glGetUniformLocation(shaderProgram, "u_normal");
+            u_world = glGetUniformLocation(shaderProgram, "u_world");
+            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            u_cameraPosition = glGetUniformLocation(shaderProgram, "u_cameraPosition");
+
+            glUniformMatrix3fv(u_normal, 1, GL_FALSE, ToFloat9(normal).v);
+            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
+            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            glUniform3fv(u_cameraPosition, 1, &camPos.x);
+            glUniform1f(glGetUniformLocation(shaderProgram, "u_ratio"), 1.00f / 1.52f);    // 1.52 = glass
+
+            DrawMesh(cubeMesh);
+        // Refract end
             break;
 
         // Applies a texture to our object
