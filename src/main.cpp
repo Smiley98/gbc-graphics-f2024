@@ -432,18 +432,17 @@ int main(void)
             //DrawMesh(sphereMesh);
             //
             //// Visualize light as wireframe
-            //shaderProgram = shaderUniformColor;
-            //glUseProgram(shaderProgram);
-            //world = Scale(V3_ONE * lightRadius) * Translate(lightPosition);
-            //mvp = world * view * proj;
-            ////u_world = glGetUniformLocation(shaderProgram, "u_world");
-            //u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            //u_color = glGetUniformLocation(shaderProgram, "u_color");
-            //glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            //glUniform3fv(u_color, 1, &lightColor.x);
-            //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            //DrawMesh(sphereMesh);
-            //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            shaderProgram = shaderUniformColor;
+            glUseProgram(shaderProgram);
+            world = Scale(V3_ONE * lightRadius) * Translate(lightPosition);
+            mvp = world * view * proj;
+
+            SendMat4(shaderProgram, "u_mvp", mvp);
+            SendVec3(shaderProgram, "u_color", lightColor);
+
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            DrawMesh(sphereMesh);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             break;
 
         // Skybox + environment mapping!
