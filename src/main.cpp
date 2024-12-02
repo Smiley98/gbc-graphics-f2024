@@ -245,6 +245,7 @@ int main(void)
     float ambientFactor = 0.25f;
     float diffuseFactor = 1.0f;
     float specularPower = 64.0f;
+    float refractiveIndex = 1.52f; // 1.52 = glass
 
     // Render looks weird cause this isn't enabled, but its causing unexpected problems which I'll fix soon!
     glEnable(GL_DEPTH_TEST);
@@ -544,7 +545,7 @@ int main(void)
             glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
             glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
             glUniform3fv(u_cameraPosition, 1, &camPos.x);
-            glUniform1f(glGetUniformLocation(shaderProgram, "u_ratio"), 1.00f / 1.52f);    // 1.52 = glass
+            glUniform1f(glGetUniformLocation(shaderProgram, "u_ratio"), 1.00f / refractiveIndex);
 
             DrawMesh(cubeMesh);
         // Refract end
@@ -580,6 +581,8 @@ int main(void)
             ImGui::SliderFloat("Ambient", &ambientFactor, 0.0f, 1.0f);
             ImGui::SliderFloat("Diffuse", &diffuseFactor, 0.0f, 1.0f);
             ImGui::SliderFloat("Specular", &specularPower, 8.0f, 256.0f);
+
+            ImGui::SliderFloat("Refractive Index", &refractiveIndex, 1.0f, 3.0f);
 
             ImGui::RadioButton("Orthographic", (int*)&projection, 0); ImGui::SameLine();
             ImGui::RadioButton("Perspective", (int*)&projection, 1);

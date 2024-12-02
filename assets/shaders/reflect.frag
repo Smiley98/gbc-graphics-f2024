@@ -14,6 +14,5 @@ void main()
     vec3 R = reflect(I, normalize(normal));
     
     vec3 col = texture(u_cubemap, R).xyz;
-    //vec3 col = vec3(1.0, 0.0, 0.0);
     FragColor = vec4(col, 1.0);
 }

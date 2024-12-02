@@ -14,6 +14,6 @@ void main()
     vec3 I = normalize(position - u_cameraPosition);
     vec3 R = refract(I, normalize(normal), u_ratio);
     
-    vec3 col = texture(u_cubemap, position).xyz;
-    FragColor = vec4(col, 1.0);
+    vec3 col = texture(u_cubemap, R).xyz;
+    FragColor = vec4(col * u_ratio, 1.0);
 }
