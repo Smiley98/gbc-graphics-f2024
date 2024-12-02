@@ -497,8 +497,7 @@ int main(void)
             viewSky.m12 = viewSky.m13 = viewSky.m14 = 0.0f;
             mvp = world * viewSky * proj;
             
-            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            SendMat4(shaderProgram, "u_mvp", mvp);
             glBindTexture(GL_TEXTURE_CUBE_MAP, texSkybox);
             glDepthMask(GL_FALSE);
             DrawMesh(cubeMesh);
@@ -513,15 +512,10 @@ int main(void)
             mvp = world * view * proj;
             normal = Transpose(Invert(world));
 
-            u_normal = glGetUniformLocation(shaderProgram, "u_normal");
-            u_world = glGetUniformLocation(shaderProgram, "u_world");
-            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            u_cameraPosition = glGetUniformLocation(shaderProgram, "u_cameraPosition");
-
-            glUniformMatrix3fv(u_normal, 1, GL_FALSE, ToFloat9(normal).v);
-            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
-            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glUniform3fv(u_cameraPosition, 1, &camPos.x);
+            SendMat3(shaderProgram, "u_normal", normal);
+            SendMat4(shaderProgram, "u_world", world);
+            SendMat4(shaderProgram, "u_mvp", mvp);
+            SendVec3(shaderProgram, "u_cameraPosition", camPos);
 
             DrawMesh(cubeMesh);
         // Reflect end
@@ -534,16 +528,10 @@ int main(void)
             mvp = world * view * proj;
             normal = Transpose(Invert(world));
 
-            u_normal = glGetUniformLocation(shaderProgram, "u_normal");
-            u_world = glGetUniformLocation(shaderProgram, "u_world");
-            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            u_cameraPosition = glGetUniformLocation(shaderProgram, "u_cameraPosition");
-
-            glUniformMatrix3fv(u_normal, 1, GL_FALSE, ToFloat9(normal).v);
-            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
-            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glUniform3fv(u_cameraPosition, 1, &camPos.x);
-            //glUniform1f(glGetUniformLocation(shaderProgram, "u_ratio"), 1.00f / refractiveIndex);
+            SendMat3(shaderProgram, "u_normal", normal);
+            SendMat4(shaderProgram, "u_world", world);
+            SendMat4(shaderProgram, "u_mvp", mvp);
+            SendVec3(shaderProgram, "u_cameraPosition", camPos);
             SendFloat(shaderProgram, "u_ratio", 1.00f / refractiveIndex);
 
             DrawMesh(cubeMesh);

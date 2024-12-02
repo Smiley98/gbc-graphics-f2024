@@ -83,8 +83,55 @@ GLuint CreateProgram(GLuint vs, GLuint fs)
     return program;
 }
 
+GLint GetLocation(GLuint shader, const char* name)
+{
+    // Future improvement: do some validation
+    // ie if glGetUniformLocation returns -1, crash the program?
+    GLint location = glGetUniformLocation(shader, name);
+    assert(location != -1, "Shader variable (name) does not exist!");
+    return glGetUniformLocation(shader, name);
+}
+
+void SendInt(GLuint shader, const char* name, int value)
+{
+    GLint location = GetLocation(shader, name);
+    glUniform1i(location, value);
+}
+
 void SendFloat(GLuint shader, const char* name, float value)
 {
-    GLint location = glGetUniformLocation(shader, name);
+    GLint location = GetLocation(shader, name);
     glUniform1f(location, value);
+}
+
+void SendVec2(GLuint shader, const char* name, Vector2 value)
+{
+    GLint location = GetLocation(shader, name);
+    glUniform2f(location, value.x, value.y);
+}
+
+void SendVec3(GLuint shader, const char* name, Vector3 value)
+{
+    GLint location = GetLocation(shader, name);
+    glUniform3f(location, value.x, value.y, value.z);
+}
+
+void SendVec4(GLuint shader, const char* name, Vector4 value)
+{
+    GLint location = GetLocation(shader, name);
+    glUniform4f(location, value.x, value.y, value.z, value.w);
+}
+
+void SendMat3(GLuint shader, const char* name, Matrix value)
+{
+    GLint location = GetLocation(shader, name);
+    float9 v = ToFloat9(value);
+    glUniformMatrix3fv(location, 1, GL_FALSE, v.v);
+}
+
+void SendMat4(GLuint shader, const char* name, Matrix value)
+{
+    GLint location = GetLocation(shader, name);
+    float16 v = ToFloat16(value);
+    glUniformMatrix4fv(location, 1, GL_FALSE, v.v);
 }
