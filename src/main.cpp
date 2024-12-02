@@ -344,7 +344,6 @@ int main(void)
         Matrix proj = projection == ORTHO ? Ortho(left, right, bottom, top, near, far) : Perspective(fov, SCREEN_ASPECT, near, far);
         Matrix mvp = MatrixIdentity();
 
-        GLint u_textureSlots[2]{ -2, -2 };
         GLuint shaderProgram = GL_NONE;
         GLuint texture = texToggle ? texGradient : texHead;
 
@@ -374,27 +373,22 @@ int main(void)
 
         // Interpolating (lerping) between 2 textures:
         case 2:
-            //shaderProgram = shaderTextureMix;
-            //mvp = world * view * proj;
-            //
-            //glUseProgram(shaderProgram);
-            //u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            //u_textureSlots[0] = glGetUniformLocation(shaderProgram, "u_tex0");
-            //u_textureSlots[1] = glGetUniformLocation(shaderProgram, "u_tex1");
-            //u_t = glGetUniformLocation(shaderProgram, "u_t");
-            //
-            //glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            //glUniform1f(u_t, cosf(time) * 0.5f + 0.5f);
-            //
-            //glUniform1i(u_textureSlots[0], 0);
-            //glActiveTexture(GL_TEXTURE0);
-            //glBindTexture(GL_TEXTURE_2D, texGradient);
-            //
-            //glUniform1i(u_textureSlots[1], 1);
-            //glActiveTexture(GL_TEXTURE1);
-            //glBindTexture(GL_TEXTURE_2D, texHead);
-            //
-            //DrawMesh(headMesh);
+            shaderProgram = shaderTextureMix;
+            glUseProgram(shaderProgram);
+            
+            mvp = world * view * proj;
+            SendMat4(shaderProgram, "u_mvp", mvp);
+            SendFloat(shaderProgram, "u_t", cosf(time) * 0.5f + 0.5f);
+            
+            SendInt(shaderProgram, "u_tex0", 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texGradient);
+            
+            SendInt(shaderProgram, "u_tex1", 1);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texHead);
+            
+            DrawMesh(headMesh);
             break;
 
         // Phong
