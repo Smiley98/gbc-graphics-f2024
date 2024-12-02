@@ -207,7 +207,7 @@ int main(void)
     };
     GLuint texSkybox = CreateSkybox(skyboxPath);
 
-    int object = 3;
+    int object = 0;
     printf("Object %i\n", object + 1);
 
     Projection projection = PERSP;
@@ -344,28 +344,10 @@ int main(void)
         Matrix proj = projection == ORTHO ? Ortho(left, right, bottom, top, near, far) : Perspective(fov, SCREEN_ASPECT, near, far);
         Matrix mvp = MatrixIdentity();
 
-        GLuint u_color = -2;
-        GLint u_normal = -2;
-        GLint u_world = -2;
-        GLint u_mvp = -2;
-        GLint u_tex = -2;
         GLint u_textureSlots[2]{ -2, -2 };
         GLuint shaderProgram = GL_NONE;
         GLuint texture = texToggle ? texGradient : texHead;
-        GLint u_t = GL_NONE;
 
-        GLint u_cameraPosition = -2;
-        GLint u_lightPosition = -2;
-        GLint u_lightDirection = -2;
-        GLint u_lightColor = -2;
-        GLint u_lightRadius = -2;
-        
-        GLint u_ambientFactor = -2;
-        GLint u_diffuseFactor = -2;
-        GLint u_SpecularPower = -2;
-
-        // Extra practice: render the skybox here and it should be applied to cases 1-5!
-        // You may need to tweak a few things like matrix values and depth state in order for everything to work correctly.
         switch (object + 1)
         {
         // Left side: object with texture applied to it
@@ -373,14 +355,11 @@ int main(void)
         case 1:
             shaderProgram = shaderTexture;
             glUseProgram(shaderProgram);
-            //view = view * rotationY;
-            //view = rotationY * view;
-            world = objectMatrix;//rotationY * Translate(-2.5f, 0.0f, 0.0f);
+            world = objectMatrix;
             mvp = world * view * proj;
-            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            u_tex = glGetUniformLocation(shaderProgram, "u_tex");
-            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glUniform1i(u_tex, 0);
+
+            SendMat4(shaderProgram, "u_mvp", mvp);
+            SendInt(shaderProgram, "u_tex", 0);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture);
             DrawMesh(headMesh);
@@ -389,98 +368,88 @@ int main(void)
             glUseProgram(shaderProgram);
             world = rotationX * Translate(2.5f, 0.0f, 0.0f);
             mvp = world * view * proj;
-            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            SendMat4(shaderProgram, "u_mvp", mvp);
             DrawMesh(headMesh);
             break;
 
         // Interpolating (lerping) between 2 textures:
         case 2:
-            shaderProgram = shaderTextureMix;
-            mvp = world * view * proj;
-
-            glUseProgram(shaderProgram);
-            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            u_textureSlots[0] = glGetUniformLocation(shaderProgram, "u_tex0");
-            u_textureSlots[1] = glGetUniformLocation(shaderProgram, "u_tex1");
-            u_t = glGetUniformLocation(shaderProgram, "u_t");
-
-            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glUniform1f(u_t, cosf(time) * 0.5f + 0.5f);
-
-            glUniform1i(u_textureSlots[0], 0);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, texGradient);
-
-            glUniform1i(u_textureSlots[1], 1);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, texHead);
-
-            DrawMesh(headMesh);
+            //shaderProgram = shaderTextureMix;
+            //mvp = world * view * proj;
+            //
+            //glUseProgram(shaderProgram);
+            //u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            //u_textureSlots[0] = glGetUniformLocation(shaderProgram, "u_tex0");
+            //u_textureSlots[1] = glGetUniformLocation(shaderProgram, "u_tex1");
+            //u_t = glGetUniformLocation(shaderProgram, "u_t");
+            //
+            //glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            //glUniform1f(u_t, cosf(time) * 0.5f + 0.5f);
+            //
+            //glUniform1i(u_textureSlots[0], 0);
+            //glActiveTexture(GL_TEXTURE0);
+            //glBindTexture(GL_TEXTURE_2D, texGradient);
+            //
+            //glUniform1i(u_textureSlots[1], 1);
+            //glActiveTexture(GL_TEXTURE1);
+            //glBindTexture(GL_TEXTURE_2D, texHead);
+            //
+            //DrawMesh(headMesh);
             break;
 
         // Phong
-        // (Lab TODO: convert from object-space to world-space positions & normals, apply normal matrix to handle non-uniform scaling)
-        // (Lab TODO: control lighting parameters [color, position, maybe add attenuation])
         case 3:
-            shaderProgram = shaderPhong;
-            glUseProgram(shaderProgram);
-            world = objectMatrix;
-            mvp = world * view * proj;
-
-            // Converting from mat4 to mat3 removes the translation
-            // Uniform scale (ie scale(2.0, 2.0, 2.0) preserves the direction of matrix forward, right and up
-            // Non-uniform scale (ie scale(3.0, 1.0, 1.0) changes this direction, hence we need to "re-normalize"
-            // Our matrix by taking the transpose of its inverse (http://www.lighthouse3d.com/tutorials/glsl-tutorial/the-normal-matrix/)
-            //world = Scale(3.0f, 1.0f, 1.0f) * objectMatrix;
-            //normal = world;
-            normal = Transpose(Invert(world));
-
-            u_normal = glGetUniformLocation(shaderProgram, "u_normal");
-            u_world = glGetUniformLocation(shaderProgram, "u_world");
-            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-
-            u_cameraPosition = glGetUniformLocation(shaderProgram, "u_cameraPosition");
-            u_lightPosition = glGetUniformLocation(shaderProgram, "u_lightPosition");
-            u_lightDirection = glGetUniformLocation(shaderProgram, "u_lightDirection");
-            u_lightColor = glGetUniformLocation(shaderProgram, "u_lightColor");
-            u_lightRadius = glGetUniformLocation(shaderProgram, "u_lightRadius");
-
-            u_ambientFactor = glGetUniformLocation(shaderProgram, "u_ambientFactor");
-            u_diffuseFactor = glGetUniformLocation(shaderProgram, "u_diffuseFactor");
-            u_SpecularPower = glGetUniformLocation(shaderProgram, "u_specularPower");
-
-            glUniformMatrix3fv(u_normal, 1, GL_FALSE, ToFloat9(normal).v);
-            glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
-            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-
-            Vector3 lightDirection = Direction(lightAngle);
-
-            glUniform3fv(u_cameraPosition, 1, &camPos.x);
-            glUniform3fv(u_lightPosition, 1, &lightPosition.x);
-            glUniform3fv(u_lightDirection, 1, &lightDirection.x);
-            glUniform3fv(u_lightColor, 1, &lightColor.x);
-            glUniform1f(u_lightRadius, lightRadius);
-
-            glUniform1f(u_ambientFactor, ambientFactor);
-            glUniform1f(u_diffuseFactor, diffuseFactor);
-            glUniform1f(u_SpecularPower, specularPower);
-
-            DrawMesh(sphereMesh);
-
-            // Visualize light as wireframe
-            shaderProgram = shaderUniformColor;
-            glUseProgram(shaderProgram);
-            world = Scale(V3_ONE * lightRadius) * Translate(lightPosition);
-            mvp = world * view * proj;
+            //shaderProgram = shaderPhong;
+            //glUseProgram(shaderProgram);
+            //world = objectMatrix;
+            //mvp = world * view * proj;
+            //normal = Transpose(Invert(world));
+            //
+            //u_normal = glGetUniformLocation(shaderProgram, "u_normal");
             //u_world = glGetUniformLocation(shaderProgram, "u_world");
-            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            u_color = glGetUniformLocation(shaderProgram, "u_color");
-            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glUniform3fv(u_color, 1, &lightColor.x);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            DrawMesh(sphereMesh);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            //u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            //
+            //u_cameraPosition = glGetUniformLocation(shaderProgram, "u_cameraPosition");
+            //u_lightPosition = glGetUniformLocation(shaderProgram, "u_lightPosition");
+            //u_lightDirection = glGetUniformLocation(shaderProgram, "u_lightDirection");
+            //u_lightColor = glGetUniformLocation(shaderProgram, "u_lightColor");
+            //u_lightRadius = glGetUniformLocation(shaderProgram, "u_lightRadius");
+            //
+            //u_ambientFactor = glGetUniformLocation(shaderProgram, "u_ambientFactor");
+            //u_diffuseFactor = glGetUniformLocation(shaderProgram, "u_diffuseFactor");
+            //u_SpecularPower = glGetUniformLocation(shaderProgram, "u_specularPower");
+            //
+            //glUniformMatrix3fv(u_normal, 1, GL_FALSE, ToFloat9(normal).v);
+            //glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
+            //glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            //
+            //Vector3 lightDirection = Direction(lightAngle);
+            //
+            //glUniform3fv(u_cameraPosition, 1, &camPos.x);
+            //glUniform3fv(u_lightPosition, 1, &lightPosition.x);
+            //glUniform3fv(u_lightDirection, 1, &lightDirection.x);
+            //glUniform3fv(u_lightColor, 1, &lightColor.x);
+            //glUniform1f(u_lightRadius, lightRadius);
+            //
+            //glUniform1f(u_ambientFactor, ambientFactor);
+            //glUniform1f(u_diffuseFactor, diffuseFactor);
+            //glUniform1f(u_SpecularPower, specularPower);
+            //
+            //DrawMesh(sphereMesh);
+            //
+            //// Visualize light as wireframe
+            //shaderProgram = shaderUniformColor;
+            //glUseProgram(shaderProgram);
+            //world = Scale(V3_ONE * lightRadius) * Translate(lightPosition);
+            //mvp = world * view * proj;
+            ////u_world = glGetUniformLocation(shaderProgram, "u_world");
+            //u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            //u_color = glGetUniformLocation(shaderProgram, "u_color");
+            //glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            //glUniform3fv(u_color, 1, &lightColor.x);
+            //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            //DrawMesh(sphereMesh);
+            //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             break;
 
         // Skybox + environment mapping!
@@ -540,16 +509,16 @@ int main(void)
 
         // Applies a texture to our object
         case 5:
-            shaderProgram = shaderTexture;
-            glUseProgram(shaderProgram);
-            mvp = world * view * proj;
-            u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            u_tex = glGetUniformLocation(shaderProgram, "u_tex");
-            glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            glUniform1i(u_tex, 0);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, texture);
-            DrawMesh(headMesh);
+            //shaderProgram = shaderTexture;
+            //glUseProgram(shaderProgram);
+            //mvp = world * view * proj;
+            //u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
+            //u_tex = glGetUniformLocation(shaderProgram, "u_tex");
+            //glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
+            //glUniform1i(u_tex, 0);
+            //glActiveTexture(GL_TEXTURE0);
+            //glBindTexture(GL_TEXTURE_2D, texture);
+            //DrawMesh(headMesh);
             break;
         }
 
