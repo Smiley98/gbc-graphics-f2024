@@ -347,20 +347,6 @@ int main(void)
         GLuint shaderProgram = GL_NONE;
         GLuint texture = texToggle ? texGradient : texHead;
 
-        GLint u_normal;
-        GLint u_world;
-        GLint u_mvp;
-
-        GLint u_cameraPosition;
-        GLint u_lightPosition;
-        GLint u_lightDirection;
-        GLint u_lightColor;
-        GLint u_lightRadius;
-
-        GLint u_ambientFactor;
-        GLint u_diffuseFactor;
-        GLint u_SpecularPower;
-
         switch (object + 1)
         {
         // Left side: object with texture applied to it
@@ -500,16 +486,15 @@ int main(void)
 
         // Applies a texture to our object
         case 5:
-            //shaderProgram = shaderTexture;
-            //glUseProgram(shaderProgram);
-            //mvp = world * view * proj;
-            //u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            //u_tex = glGetUniformLocation(shaderProgram, "u_tex");
-            //glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            //glUniform1i(u_tex, 0);
-            //glActiveTexture(GL_TEXTURE0);
-            //glBindTexture(GL_TEXTURE_2D, texture);
-            //DrawMesh(headMesh);
+            shaderProgram = shaderTexture;
+            glUseProgram(shaderProgram);
+            mvp = world * view * proj;
+
+            SendMat4(shaderProgram, "u_mvp", mvp);
+            SendInt(shaderProgram, "u_tex", 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texture);
+            DrawMesh(headMesh);
             break;
         }
 
@@ -654,170 +639,3 @@ void Print(Matrix m)
     printf("%f %f %f %f\n", m.m2, m.m6, m.m10, m.m14);
     printf("%f %f %f %f\n\n", m.m3, m.m7, m.m11, m.m15);
 }
-
-// Positions of our triangle's vertices (CCW winding-order)
-//Vector3 positions[] =
-//{
-//    0.5f, -0.5f, 0.0f,  // vertex 1 (bottom-right)
-//    0.0f, 0.5f, 0.0f,   // vertex 2 (top-middle)
-//    -0.5f, -0.5f, 0.0f  // vertex 3 (bottom-left)
-//};
-//
-//// Colours of our triangle's vertices (xyz = rgb)
-//Vector3 colors[] =
-//{
-//    1.0f, 0.0f, 0.0f,   // vertex 1
-//    0.0f, 1.0f, 0.0f,   // vertex 2
-//    0.0f, 0.0f, 1.0f    // vertex 3
-//};
-
-// Hello triangle begin
-//    GLuint vaoTriangle, pboTriangle, cboTriangle;
-//    glGenVertexArrays(1, &vaoTriangle);
-//    glBindVertexArray(vaoTriangle);
-//    
-//    glGenBuffers(1, &pboTriangle);
-//    glBindBuffer(GL_ARRAY_BUFFER, pboTriangle);
-//    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), positions, GL_STATIC_DRAW);
-//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), 0);
-//    glEnableVertexAttribArray(0);
-//    
-//    glGenBuffers(1, &cboTriangle);
-//    glBindBuffer(GL_ARRAY_BUFFER, cboTriangle);
-//    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), colors, GL_STATIC_DRAW);
-//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
-//    glEnableVertexAttribArray(1);
-//    
-//    glBindVertexArray(GL_NONE);
-// Hello triangle end
-
-// Midterm solution begin
-//    std::vector<Vector2> pointPositions(30000);
-//    std::vector<Vector3> pointColours(30000);
-//    for (int i = 1; i < pointPositions.size(); i++)
-//    {
-//        //pointPositions[i].x = Random(-1.0f, 1.0f);
-//        //pointPositions[i].y = Random(-1.0f, 1.0f);
-//        //pointColours[i] = colours[rand() % 3];
-//
-//        Vector2 prev = pointPositions[i - 1];
-//        Vector2 curr = positions[rand() % 3];
-//        pointPositions[i] = (prev + curr) * 0.5f;
-//
-//        float r = Random(0.0f, 1.0f);
-//        float g = Random(0.0f, 1.0f);
-//        float b = Random(0.0f, 1.0f);
-//        pointColours[i] = { r, g, b };
-//    }
-//
-//    GLuint vaoPoints, pboPoints, cboPoints;
-//    glGenVertexArrays(1, &vaoPoints);
-//    glBindVertexArray(vaoPoints);
-//
-//    glGenBuffers(1, &pboPoints);
-//    glBindBuffer(GL_ARRAY_BUFFER, pboPoints);
-//    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2) * pointPositions.size(), pointPositions.data(), GL_STATIC_DRAW);
-//    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
-//    glEnableVertexAttribArray(5);
-//
-//    glGenBuffers(1, &cboPoints);
-//    glBindBuffer(GL_ARRAY_BUFFER, cboPoints);
-//    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * pointColours.size(), pointColours.data(), GL_STATIC_DRAW);
-//    glVertexAttribPointer(13, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
-//    glEnableVertexAttribArray(13);
-//
-//    glBindVertexArray(GL_NONE);
-// Midterm solution end
-
-// A2 solution begin
-//    std::vector<Vector2> linePositions = GenerateLineShapes(GenerateSquares(2));
-//    std::vector<Vector3> lineColors(linePositions.size());
-//    for (Vector3& c : lineColors)
-//    {
-//        float r = Random(0.0f, 1.0f);
-//        float g = Random(0.0f, 1.0f);
-//        float b = Random(0.0f, 1.0f);
-//        c = { r, g, b };
-//    }
-//
-//    GLuint vaoLines, pboLines, cboLines;
-//    glGenVertexArrays(1, &vaoLines);
-//    glBindVertexArray(vaoLines);
-//
-//    glGenBuffers(1, &pboLines);
-//    glBindBuffer(GL_ARRAY_BUFFER, pboLines);
-//    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2) * linePositions.size(), linePositions.data(), GL_STATIC_DRAW);
-//    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vector2), nullptr);
-//    glEnableVertexAttribArray(0);
-//
-//    glGenBuffers(1, &cboLines);
-//    glBindBuffer(GL_ARRAY_BUFFER, cboLines);
-//    glBufferData(GL_ARRAY_BUFFER, sizeof(Vector3) * lineColors.size(), lineColors.data(), GL_STATIC_DRAW);
-//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3), nullptr);
-//    glEnableVertexAttribArray(1);
-//
-//    glBindVertexArray(GL_NONE);
-// 
-// std::vector<Vector2> GenerateLines(std::vector<Vector2> verts)
-//{
-//    std::vector<Vector2> lines(verts.size() * 2);
-//    for (int i = 0; i < lines.size(); i = i + 2)
-//    {
-//        lines[i] = verts[i / 2];
-//        lines[i + 1] = verts[(i / 2 + 1) % verts.size()];
-//    }
-//    return lines;
-//}
-//
-//std::vector<Vector2> GenerateMidpoints(std::vector<Vector2> verts)
-//{
-//    std::vector<Vector2> mids(verts.size());
-//
-//    for (int i = 0; i < mids.size(); i++)
-//    {
-//        mids[i] = (verts[i] + verts[(i + 1) % mids.size()]) / 2.0f;
-//    }
-//
-//    return mids;
-//}
-//
-//std::vector<Vector2> GenerateSquares(int subdivisions)
-//{
-//    // iteration 1
-//    std::vector<Vector2> points
-//    {
-//        {-1.0f,  1.0f},
-//        { 1.0f,  1.0f},
-//        { 1.0f, -1.0f},
-//        {-1.0f, -1.0f}
-//    };
-//
-//    std::vector<Vector2> result = points;
-//    for (int i = 0; i < subdivisions; i++)
-//    {
-//        points = GenerateMidpoints(points);
-//        for (Vector2 v : points)
-//        {
-//            result.push_back(v);
-//        }
-//    }
-//
-//    return result;
-//}
-//
-//std::vector<Vector2> GenerateLineShapes(std::vector<Vector2> verts, int sidesPerShape = 4)
-//{
-//    std::vector<Vector2> lines(verts.size() * 2);
-//    int i = 0;
-//    while (i < lines.size())
-//    {
-//        for (int j = 0; j < sidesPerShape * 2; j = j + 2)
-//        {
-//            lines[i + j] = verts[(i + j) / 2];
-//            lines[i + j + 1] = verts[(j / 2 + 1) % sidesPerShape + i / 2];
-//        }
-//        i = i + sidesPerShape * 2;
-//    }
-//    return lines;
-//}
-// A2 solution end
