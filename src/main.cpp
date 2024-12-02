@@ -347,6 +347,20 @@ int main(void)
         GLuint shaderProgram = GL_NONE;
         GLuint texture = texToggle ? texGradient : texHead;
 
+        GLint u_normal;
+        GLint u_world;
+        GLint u_mvp;
+
+        GLint u_cameraPosition;
+        GLint u_lightPosition;
+        GLint u_lightDirection;
+        GLint u_lightColor;
+        GLint u_lightRadius;
+
+        GLint u_ambientFactor;
+        GLint u_diffuseFactor;
+        GLint u_SpecularPower;
+
         switch (object + 1)
         {
         // Left side: object with texture applied to it
@@ -393,45 +407,29 @@ int main(void)
 
         // Phong
         case 3:
-            //shaderProgram = shaderPhong;
-            //glUseProgram(shaderProgram);
-            //world = objectMatrix;
-            //mvp = world * view * proj;
-            //normal = Transpose(Invert(world));
-            //
-            //u_normal = glGetUniformLocation(shaderProgram, "u_normal");
-            //u_world = glGetUniformLocation(shaderProgram, "u_world");
-            //u_mvp = glGetUniformLocation(shaderProgram, "u_mvp");
-            //
-            //u_cameraPosition = glGetUniformLocation(shaderProgram, "u_cameraPosition");
-            //u_lightPosition = glGetUniformLocation(shaderProgram, "u_lightPosition");
-            //u_lightDirection = glGetUniformLocation(shaderProgram, "u_lightDirection");
-            //u_lightColor = glGetUniformLocation(shaderProgram, "u_lightColor");
-            //u_lightRadius = glGetUniformLocation(shaderProgram, "u_lightRadius");
-            //
-            //u_ambientFactor = glGetUniformLocation(shaderProgram, "u_ambientFactor");
-            //u_diffuseFactor = glGetUniformLocation(shaderProgram, "u_diffuseFactor");
-            //u_SpecularPower = glGetUniformLocation(shaderProgram, "u_specularPower");
-            //
-            //glUniformMatrix3fv(u_normal, 1, GL_FALSE, ToFloat9(normal).v);
-            //glUniformMatrix4fv(u_world, 1, GL_FALSE, ToFloat16(world).v);
-            //glUniformMatrix4fv(u_mvp, 1, GL_FALSE, ToFloat16(mvp).v);
-            //
-            //Vector3 lightDirection = Direction(lightAngle);
-            //
-            //glUniform3fv(u_cameraPosition, 1, &camPos.x);
-            //glUniform3fv(u_lightPosition, 1, &lightPosition.x);
-            //glUniform3fv(u_lightDirection, 1, &lightDirection.x);
-            //glUniform3fv(u_lightColor, 1, &lightColor.x);
-            //glUniform1f(u_lightRadius, lightRadius);
-            //
-            //glUniform1f(u_ambientFactor, ambientFactor);
-            //glUniform1f(u_diffuseFactor, diffuseFactor);
-            //glUniform1f(u_SpecularPower, specularPower);
-            //
-            //DrawMesh(sphereMesh);
-            //
-            //// Visualize light as wireframe
+            shaderProgram = shaderPhong;
+            glUseProgram(shaderProgram);
+            world = objectMatrix;
+            mvp = world * view * proj;
+            normal = Transpose(Invert(world));
+            
+            SendMat3(shaderProgram, "u_normal", normal);
+            SendMat4(shaderProgram, "u_world", world);
+            SendMat4(shaderProgram, "u_mvp", mvp);
+            
+            SendVec3(shaderProgram, "u_cameraPosition", camPos);
+            SendVec3(shaderProgram, "u_lightPosition", lightPosition);
+            SendVec3(shaderProgram, "u_lightDirection", Direction(lightAngle));
+            SendVec3(shaderProgram, "u_lightColor", lightColor);
+            SendFloat(shaderProgram, "u_lightRadius", lightRadius);
+
+            SendFloat(shaderProgram, "u_ambientFactor", ambientFactor);
+            SendFloat(shaderProgram, "u_diffuseFactor", diffuseFactor);
+            SendFloat(shaderProgram, "u_specularPower", specularPower);
+            
+            DrawMesh(sphereMesh);
+            
+            // Visualize light as wireframe
             shaderProgram = shaderUniformColor;
             glUseProgram(shaderProgram);
             world = Scale(V3_ONE * lightRadius) * Translate(lightPosition);

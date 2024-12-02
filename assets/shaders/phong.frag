@@ -65,8 +65,13 @@ vec3 spot_light(vec3 position, vec3 direction, vec3 normal, vec3 camera, vec3 li
 
 void main()
 {
-    //vec3 lighting = point_light(position, normal, u_cameraPosition, u_lightPosition, u_lightColor, u_ambientFactor, u_diffuseFactor, u_specularPower, u_lightRadius);
-    vec3 lighting = direction_light(u_lightDirection, normal, u_cameraPosition, u_lightColor, u_ambientFactor, u_diffuseFactor, u_specularPower);
+    vec3 point = point_light(position, normal, u_cameraPosition, u_lightPosition, u_lightColor, u_ambientFactor, u_diffuseFactor, u_specularPower, u_lightRadius);
+    vec3 direction = direction_light(u_lightDirection, normal, u_cameraPosition, u_lightColor, u_ambientFactor, u_diffuseFactor, u_specularPower);
+
+    vec3 lighting = vec3(0.0, 0.0, 0.0);
+    lighting += point;
+    lighting += direction;
+    
     // TODO -- test spot light and multiple lights
     FragColor = vec4(lighting, 1.0);
 }
