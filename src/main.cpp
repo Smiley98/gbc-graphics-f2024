@@ -257,14 +257,15 @@ int main(void)
     printf("Object %i\n", object + 1);
 
     Projection projection = PERSP;
-    Vector3 camPos{ 0.0f, 0.0f, 5.0f };
+    Vector3 camPos{ 0.0f, 0.0f, 50.0f };
+    Vector3 camTarget{ 0.0f, 0.0f, 0.0f };
     float fov = 75.0f * DEG2RAD;
     float left = -1.0f;
     float right = 1.0f;
     float top = 1.0f;
     float bottom = -1.0f;
     float near = 0.001f; // 1.0 for testing purposes. Usually 0.1f or 0.01f
-    float far = 10.0f;
+    float far = 250.0f;
 
     // Whether we render the imgui demo widgets
     bool imguiDemo = false;
@@ -291,6 +292,17 @@ int main(void)
     float diffuseFactor = 1.0f;
     float specularPower = 64.0f;
     float refractiveIndex = 1.52f; // 1.52 = glass
+
+    std::vector<Matrix> asteroids(100);
+    for (int i = 0; i < asteroids.size(); i++)
+    {
+        float angle = (float)i / (float)asteroids.size() * 2.0f * PI;
+        float min = 40.0f;
+        float max = 60.0f;
+
+        // Extra practice: give each asteroid a random rotation and scale!
+        asteroids[i] = Translate(sinf(angle) * Random(min, max), 0.0f, cosf(angle) * Random(min, max));
+    }
 
     // Render looks weird cause this isn't enabled, but its causing unexpected problems which I'll fix soon!
     glEnable(GL_DEPTH_TEST);
@@ -387,7 +399,8 @@ int main(void)
 
         Matrix normal = MatrixIdentity();
         Matrix world = MatrixIdentity();
-        Matrix view = LookAt(camPos, camPos - V3_FORWARD, V3_UP);
+        //Matrix view = LookAt(camPos, camPos - V3_FORWARD, V3_UP); <-- keep this if you'd prefer the camera to always look straight ahead
+        Matrix view = LookAt(camPos, camTarget, V3_UP);
         Matrix proj = projection == ORTHO ? Ortho(left, right, bottom, top, near, far) : Perspective(fov, SCREEN_ASPECT, near, far);
         Matrix mvp = MatrixIdentity();
 
@@ -529,6 +542,8 @@ int main(void)
             glUseProgram(shaderProgram);
             mvp = world * view * proj;
 
+            SendMat4(shaderProgram, "u_orbit", RotateY(5.0f * timeCurr * DEG2RAD));
+            SendMat4Array(shaderProgram, "u_world", asteroids.data(), asteroids.size());
             SendMat4(shaderProgram, "u_mvp", mvp);
             SendInt(shaderProgram, "u_tex", 0);
             glActiveTexture(GL_TEXTURE0);
@@ -545,7 +560,8 @@ int main(void)
             ImGui::ShowDemoWindow();
         else
         {
-            ImGui::SliderFloat3("Camera Position", &camPos.x, -10.0f, 10.0f);
+            ImGui::SliderFloat3("Camera Position", &camPos.x, -100.0f, 100.0f);
+            ImGui::SliderFloat3("Camera Target", &camTarget.x, -100.0f, 100.0f);
             ImGui::SliderFloat3("Light Position", &lightPosition.x, -10.0f, 10.0f);
             ImGui::SliderFloat("Light Radius", &lightRadius, 0.25f, 5.0f);
             ImGui::SliderAngle("Light Angle", &lightAngle);
@@ -560,7 +576,7 @@ int main(void)
             ImGui::RadioButton("Perspective", (int*)&projection, 1);
 
             ImGui::SliderFloat("Near", &near, -10.0f, 10.0f);
-            ImGui::SliderFloat("Far", &far, -10.0f, 10.0f);
+            ImGui::SliderFloat("Far", &far, -10.0f, 500.0f);
             if (projection == ORTHO)
             {
                 ImGui::SliderFloat("Left", &left, -1.0f, -10.0f);

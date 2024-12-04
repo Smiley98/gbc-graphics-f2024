@@ -135,3 +135,15 @@ void SendMat4(GLuint shader, const char* name, Matrix value)
     float16 v = ToFloat16(value);
     glUniformMatrix4fv(location, 1, GL_FALSE, v.v);
 }
+
+void SendMat4Array(GLuint shader, const char* name, Matrix* values, int count)
+{
+    GLint location = GetLocation(shader, name);
+    float16* v = new float16[count];
+    for (int i = 0; i < 100; i++)
+    {
+        v[i] = ToFloat16(values[i]);
+    }
+    glUniformMatrix4fv(location, count, GL_FALSE, (float*)v);
+    delete[] v;
+}

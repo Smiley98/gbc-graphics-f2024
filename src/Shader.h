@@ -12,3 +12,5 @@ void SendVec3(GLuint shader, const char* name, Vector3 value);
 void SendVec4(GLuint shader, const char* name, Vector4 value);
 void SendMat3(GLuint shader, const char* name, Matrix value);
 void SendMat4(GLuint shader, const char* name, Matrix value);
+
+void SendMat4Array(GLuint shader, const char* name, Matrix* values, int count);
