@@ -47,6 +47,34 @@ struct Pixel
     stbi_uc a = 255;
 };
 
+GLuint CreateTexture(const char* texturePath)
+{
+    // Step 1: Load image from disk to CPU
+    int texWidth = 0;
+    int texHeight = 0;
+    int texChannels = 0;
+    stbi_uc* pixels = stbi_load(texturePath, &texWidth, &texHeight, &texChannels, 0);
+
+    // Note that all shaders that sample textures do .xyz to discard alpha values
+    GLint format = texChannels == 3 ? GL_RGB : GL_RGBA;
+    assert(texChannels >= 3);
+
+    // Step 2: Upload image from CPU to GPU
+    GLuint tex = GL_NONE;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, texWidth, texHeight, 0, format, GL_UNSIGNED_BYTE, pixels);
+    stbi_image_free(pixels);
+
+    return tex;
+}
+
+// Extra practice: Make a DestroyTexture function
+
 GLuint CreateSkybox(const char* skyboxPath[6])
 {
     GLuint texSkybox = GL_NONE;
@@ -160,11 +188,6 @@ int main(void)
     GLuint shaderReflect = CreateProgram(vs, fsReflect);
     GLuint shaderRefract = CreateProgram(vs, fsRefract);
 
-    // See Diffuse 2.png for context
-    //Vector2 N = Rotate(Vector2{ 0.0f, 1.0f }, 30.0f * DEG2RAD);
-    //Vector2 L = Normalize(Vector2{ 6.0f, 5.0f });
-    //float t = Dot(N, L);
-
     // Our obj file defines tcoords as 0 = bottom, 1 = top, but OpenGL defines as 0 = top 1 = bottom.
     // Flipping our image vertically is the best way to solve this as it ensures a "one-stop" solution (rather than an in-shader solution).
     stbi_set_flip_vertically_on_load(true);
@@ -190,24 +213,11 @@ int main(void)
         }
     }
 
-    // Step 1: Load image from disk to CPU
-    int texHeadWidth = 0;
-    int texHeadHeight = 0;
-    int texHeadChannels = 0;
-    stbi_uc* pixelsHead = stbi_load("./assets/textures/head.png", &texHeadWidth, &texHeadHeight, &texHeadChannels, 0);
+    GLuint texHead = CreateTexture("./assets/textures/head.png");
+    GLuint texAsteroid = CreateTexture("./assets/textures/asteroid.png");
 
-    // Step 2: Upload image from CPU to GPU
-    GLuint texHead = GL_NONE;
-    glGenTextures(1, &texHead);
-    glBindTexture(GL_TEXTURE_2D, texHead);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texHeadWidth, texHeadHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelsHead);
-    stbi_image_free(pixelsHead);
-    pixelsHead = nullptr;
-
+    // CreateTexture could be improved if we feed it pixels instead of a file path, so we can use it to upload our manually created gradient to the GPU
+    // Even better if we make a function overload
     GLuint texGradient = GL_NONE;
     glGenTextures(1, &texGradient);
     glBindTexture(GL_TEXTURE_2D, texGradient);
@@ -240,7 +250,7 @@ int main(void)
     GLuint texSkyboxArctic = CreateSkybox(skyboxArcticPath);
     GLuint texSkyboxSpace = CreateSkybox(skyboxSpacePath);
 
-    int object = 0;
+    int object = 4;
     printf("Object %i\n", object + 1);
 
     Projection projection = PERSP;
@@ -258,8 +268,9 @@ int main(void)
     bool texToggle = false;
     bool camToggle = false;
 
-    Mesh headMesh, cubeMesh, sphereMesh;
+    Mesh headMesh, asteroidMesh, cubeMesh, sphereMesh;
     CreateMesh(&headMesh, "assets/meshes/head.obj");
+    CreateMesh(&asteroidMesh, "assets/meshes/asteroid.obj");
     CreateMesh(&cubeMesh, CUBE);
     CreateMesh(&sphereMesh, SPHERE);
 
@@ -378,7 +389,7 @@ int main(void)
         Matrix mvp = MatrixIdentity();
 
         GLuint shaderProgram = GL_NONE;
-        GLuint texture = texToggle ? texGradient : texHead;
+        GLuint textureTest = texToggle ? texGradient : texHead;
 
         switch (object + 1)
         {
@@ -393,7 +404,7 @@ int main(void)
             SendMat4(shaderProgram, "u_mvp", mvp);
             SendInt(shaderProgram, "u_tex", 0);
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, texture);
+            glBindTexture(GL_TEXTURE_2D, textureTest);
             DrawMesh(headMesh);
 
             shaderProgram = shaderTcoords;
@@ -518,8 +529,8 @@ int main(void)
             SendMat4(shaderProgram, "u_mvp", mvp);
             SendInt(shaderProgram, "u_tex", 0);
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, texture);
-            DrawMesh(headMesh);
+            glBindTexture(GL_TEXTURE_2D, texAsteroid);
+            DrawMesh(asteroidMesh);
             break;
         }
 
