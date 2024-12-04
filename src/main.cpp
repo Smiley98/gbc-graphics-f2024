@@ -68,8 +68,31 @@ GLuint CreateSkybox(const char* skyboxPath[6])
         stbi_image_free(pixels);
     }
     stbi_set_flip_vertically_on_load(true);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, GL_NONE);
 
     return texSkybox;
+}
+
+// Extra practice: Make a DestroySkybox function
+
+void DrawSkybox(GLuint skybox, GLuint shader, const Mesh& cube, Matrix view, Matrix proj)
+{
+    // Skybox begin
+    shader = shader;
+    glUseProgram(shader);
+
+    Matrix viewSky = view;
+    viewSky.m12 = viewSky.m13 = viewSky.m14 = 0.0f;
+    Matrix mvp = viewSky * proj;
+
+    SendMat4(shader, "u_mvp", mvp);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
+    glDepthMask(GL_FALSE);
+    DrawMesh(cube);
+    glDepthMask(GL_TRUE);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, GL_NONE);
+    // Skybox end
 }
 
 int main(void)
@@ -196,7 +219,7 @@ int main(void)
     free(pixelsGradient);
     pixelsGradient = nullptr;
 
-    const char* skyboxPath[6] =
+    const char* skyboxArcticPath[6] =
     {
         "./assets/textures/arctic_x+.jpg",
         "./assets/textures/arctic_x-.jpg",
@@ -205,7 +228,17 @@ int main(void)
         "./assets/textures/arctic_z+.jpg",
         "./assets/textures/arctic_z-.jpg"
     };
-    GLuint texSkybox = CreateSkybox(skyboxPath);
+    const char* skyboxSpacePath[6] =
+    {
+        "./assets/textures/sky_x+.png",
+        "./assets/textures/sky_x-.png",
+        "./assets/textures/sky_y+.png",
+        "./assets/textures/sky_y-.png",
+        "./assets/textures/sky_z+.png",
+        "./assets/textures/sky_z-.png"
+    };
+    GLuint texSkyboxArctic = CreateSkybox(skyboxArcticPath);
+    GLuint texSkyboxSpace = CreateSkybox(skyboxSpacePath);
 
     int object = 0;
     printf("Object %i\n", object + 1);
@@ -434,21 +467,7 @@ int main(void)
         // Extra practice 2 - Add FPS camera to see all 6 faces of the skybox!
         // Extra practice 3 - Add FPS controls to objects & make a key to cycle between controlling reflected vs refracted object
         case 4:
-
-        // Skybox begin
-            shaderProgram = shaderSkybox;
-            glUseProgram(shaderProgram);
-            
-            Matrix viewSky = view;
-            viewSky.m12 = viewSky.m13 = viewSky.m14 = 0.0f;
-            mvp = world * viewSky * proj;
-            
-            SendMat4(shaderProgram, "u_mvp", mvp);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, texSkybox);
-            glDepthMask(GL_FALSE);
-            DrawMesh(cubeMesh);
-            glDepthMask(GL_TRUE);
-        // Skybox end
+            DrawSkybox(texSkyboxArctic, shaderSkybox, cubeMesh, view, proj);
 
         // Reflect begin
             shaderProgram = shaderReflect;
@@ -463,7 +482,9 @@ int main(void)
             SendMat4(shaderProgram, "u_mvp", mvp);
             SendVec3(shaderProgram, "u_cameraPosition", camPos);
 
+            glBindTexture(GL_TEXTURE_CUBE_MAP, texSkyboxArctic);
             DrawMesh(cubeMesh);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, GL_NONE);
         // Reflect end
 
         // Refract begin
@@ -480,12 +501,16 @@ int main(void)
             SendVec3(shaderProgram, "u_cameraPosition", camPos);
             SendFloat(shaderProgram, "u_ratio", 1.00f / refractiveIndex);
 
+            glBindTexture(GL_TEXTURE_CUBE_MAP, texSkyboxArctic);
             DrawMesh(cubeMesh);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, GL_NONE);
         // Refract end
             break;
 
         // Applies a texture to our object
         case 5:
+            DrawSkybox(texSkyboxSpace, shaderSkybox, cubeMesh, view, proj);
+
             shaderProgram = shaderTexture;
             glUseProgram(shaderProgram);
             mvp = world * view * proj;
