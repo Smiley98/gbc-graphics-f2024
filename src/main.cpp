@@ -159,6 +159,7 @@ int main(void)
     GLuint vsLines = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/lines.vert");
     GLuint vsVertexPositionColor = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/vertex_color.vert");
     GLuint vsColorBufferColor = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/buffer_color.vert");
+    GLuint vsAsteroids = CreateShader(GL_VERTEX_SHADER, "./assets/shaders/asteroids.vert");
     
     // Fragment shaders:
     GLuint fsSkybox = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/skybox.frag");
@@ -172,6 +173,7 @@ int main(void)
     GLuint fsPhong = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/phong.frag");
     GLuint fsReflect = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/reflect.frag");
     GLuint fsRefract = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/refract.frag");
+    GLuint fsAsteroids = CreateShader(GL_FRAGMENT_SHADER, "./assets/shaders/asteroids.frag");
     
     // Shader programs:
     GLuint shaderUniformColor = CreateProgram(vs, fsUniformColor);
@@ -187,6 +189,7 @@ int main(void)
     GLuint shaderPhong = CreateProgram(vs, fsPhong);
     GLuint shaderReflect = CreateProgram(vs, fsReflect);
     GLuint shaderRefract = CreateProgram(vs, fsRefract);
+    GLuint shaderAsteroids = CreateProgram(vsAsteroids, fsAsteroids);
 
     // Our obj file defines tcoords as 0 = bottom, 1 = top, but OpenGL defines as 0 = top 1 = bottom.
     // Flipping our image vertically is the best way to solve this as it ensures a "one-stop" solution (rather than an in-shader solution).
@@ -522,7 +525,7 @@ int main(void)
         case 5:
             DrawSkybox(texSkyboxSpace, shaderSkybox, cubeMesh, view, proj);
 
-            shaderProgram = shaderTexture;
+            shaderProgram = shaderAsteroids;
             glUseProgram(shaderProgram);
             mvp = world * view * proj;
 
