@@ -130,6 +130,16 @@ void DrawMesh(const Mesh& mesh)
 	glBindVertexArray(GL_NONE);
 }
 
+void DrawMeshInstanced(const Mesh& mesh, int instanceCount)
+{
+	glBindVertexArray(mesh.vao);
+	if (mesh.ebo != GL_NONE)
+		glDrawElementsInstanced(GL_TRIANGLES, mesh.count, GL_UNSIGNED_SHORT, nullptr, instanceCount);
+	else
+		glDrawArraysInstanced(GL_TRIANGLES, 0, mesh.count, instanceCount);
+	glBindVertexArray(GL_NONE);
+}
+
 void Upload(Mesh* mesh)
 {
 	GLuint vao, pbo, nbo, tbo, ebo;

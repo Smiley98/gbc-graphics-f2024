@@ -533,7 +533,8 @@ int main(void)
             SendInt(shaderProgram, "u_tex", 0);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texAsteroid);
-            DrawMesh(asteroidMesh);
+
+            DrawMeshInstanced(asteroidMesh, 100);
             break;
         }
 

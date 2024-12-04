@@ -35,3 +35,4 @@ void CreateMesh(Mesh* mesh, ShapeType shape);
 void DestroyMesh(Mesh* mesh);
 
 void DrawMesh(const Mesh& mesh);
+void DrawMeshInstanced(const Mesh& mesh, int instanceCount);
